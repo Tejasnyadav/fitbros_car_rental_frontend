@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+:root {
+  --background: #0A0A0A;
+  --foreground: #FFFFFF;
+  --card: #171717;
+  --accent: #FACC15;
+  --success: #22C55E;
+  --danger: #EF4444;
+  --border: rgba(255, 255, 255, 0.08);
+
+  --font-sans: 'Inter', sans-serif;
+  --font-luxury: 'Outfit', sans-serif;
+}
+
+@theme {
+  --color-bg-dark: var(--background);
+  --color-card-dark: var(--card);
+  --color-accent-gold: var(--accent);
+  --color-success-green: var(--success);
+  --color-danger-red: var(--danger);
+  --color-border-light: var(--border);
+
+  --font-sans: var(--font-sans);
+  --font-luxury: var(--font-luxury);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Glassmorphism Reusable panels */
+.glass-panel {
+  background: rgba(23, 23, 23, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-panel-hover {
+  transition: all 0.30s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(30, 30, 30, 0.7);
+  border-color: rgba(250, 202, 21, 0.25);
+  box-shadow: 0 10px 40px 0 rgba(250, 202, 21, 0.05);
+  transform: translateY(-2px);
+}
+
+/* Custom premium scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0A0A0A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FACC15;
+}
+
+/* Glow effects */
+.glow-accent {
+  box-shadow: 0 0 30px rgba(250, 202, 21, 0.15);
+}
+
+.glow-card {
+  position: relative;
+}
+
+.glow-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(to bottom right, rgba(250, 202, 21, 0.2), transparent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}

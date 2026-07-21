@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <!-- Metallic Silver Gradient -->
+    <linearGradient id="silver-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="20%" stop-color="#EAEAEA" />
+      <stop offset="40%" stop-color="#B0B0B0" />
+      <stop offset="60%" stop-color="#F5F5F5" />
+      <stop offset="80%" stop-color="#888888" />
+      <stop offset="100%" stop-color="#D8D8D8" />
+    </linearGradient>
+    
+    <!-- Premium drop shadow for 3D depth -->
+    <filter id="premium-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#000000" flood-opacity="0.75" />
+    </filter>
+  </defs>
+
+  <g filter="url(#premium-shadow)">
+    <!-- Outer Diamond Frame -->
+    <path 
+      d="M 100 22 
+         L 158 55 
+         L 182 92 
+         L 100 178 
+         L 18 92 
+         L 42 55 
+         Z" 
+      fill="none" 
+      stroke="url(#silver-grad)" 
+      stroke-width="11" 
+      stroke-linejoin="miter"
+      stroke-miterlimit="4"
+    />
+    
+    <!-- Top inner facets of the diamond -->
+    <path 
+      d="M 42 55 L 100 92 L 158 55" 
+      fill="none" 
+      stroke="url(#silver-grad)" 
+      stroke-width="4.5"
+      stroke-linejoin="round"
+    />
+    <path 
+      d="M 100 22 L 100 92" 
+      fill="none" 
+      stroke="url(#silver-grad)" 
+      stroke-width="4.5"
+    />
+
+    <!-- Monogram FB -->
+    <!-- Left Letter F (Mirrored) -->
+    <path 
+      d="M 91 66 
+         L 62 66 
+         L 48 80
+         L 70 80
+         M 91 97
+         L 66 97
+         M 91 66 
+         L 91 138" 
+      fill="none" 
+      stroke="url(#silver-grad)" 
+      stroke-width="10" 
+      stroke-linecap="square"
+      stroke-linejoin="miter"
+    />
+
+    <!-- Right Letter B (Geometric) -->
+    <path 
+      d="M 109 66 
+         L 138 66 
+         L 152 80 
+         L 136 97 
+         L 109 97 
+         L 136 97
+         L 152 114
+         L 138 138 
+         L 109 138
+         M 109 66 
+         L 109 138" 
+      fill="none" 
+      stroke="url(#silver-grad)" 
+      stroke-width="10" 
+      stroke-linecap="square"
+      stroke-linejoin="miter"
+    />
+  </g>
+</svg>
