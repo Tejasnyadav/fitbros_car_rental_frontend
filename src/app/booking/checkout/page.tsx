@@ -376,9 +376,7 @@ function CheckoutPageContent() {
                   className="w-full px-4 py-2.5 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 font-semibold cursor-pointer appearance-none"
                 >
                   <option value="">Choose Hub Location</option>
-                  <option value="FitBros Hub - Terminal 1">FitBros Hub - Terminal 1</option>
-                  <option value="FitBros Hub - Downtown Square">FitBros Hub - Downtown Square</option>
-                  <option value="Airport Premium Pickup Lounge">Airport Premium Pickup Lounge</option>
+                  <option value="51, Dayananda Sagar College Road, 2nd Cross, 1st Stage, Teachers Colony, Bengaluru, Bengaluru Urban, Karnataka, 560078(office addres)">51, Dayananda Sagar College Road, 2nd Cross, 1st Stage, Teachers Colony, Bengaluru, Bengaluru Urban, Karnataka, 560078(office addres)</option>
                 </select>
               </div>
             </div>
