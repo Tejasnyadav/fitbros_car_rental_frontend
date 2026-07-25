@@ -76,7 +76,9 @@ function CheckoutPageContent() {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.strokeStyle = '#FFFFFF';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#000000';
         ctx.lineWidth = 2.5;
         ctx.lineCap = 'round';
       }
@@ -134,7 +136,8 @@ function CheckoutPageContent() {
     if (!canvasRef.current) return;
     const ctx = canvasRef.current.getContext('2d');
     if (ctx) {
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
       setSignatureData(null);
     }
   };
@@ -145,6 +148,11 @@ function CheckoutPageContent() {
     const blank = document.createElement('canvas');
     blank.width = canvasRef.current.width;
     blank.height = canvasRef.current.height;
+    const blankCtx = blank.getContext('2d');
+    if (blankCtx) {
+      blankCtx.fillStyle = '#FFFFFF';
+      blankCtx.fillRect(0, 0, blank.width, blank.height);
+    }
     if (canvasRef.current.toDataURL() !== blank.toDataURL()) {
       setSignatureData(canvasRef.current.toDataURL());
     }
@@ -442,7 +450,7 @@ function CheckoutPageContent() {
                 onTouchStart={startDrawing}
                 onTouchMove={draw}
                 onTouchEnd={stopDrawing}
-                className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl cursor-crosshair touch-none"
+                className="w-full bg-white border border-white/10 rounded-xl cursor-crosshair touch-none"
               />
             </div>
 
