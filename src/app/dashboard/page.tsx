@@ -91,7 +91,7 @@ export default function UserDashboardPage() {
 
       // 2. Setup checkout options
       const options = {
-        key: orderData.keyId,
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'FitBros Car Rental',
