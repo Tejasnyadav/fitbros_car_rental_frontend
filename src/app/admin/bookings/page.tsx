@@ -472,11 +472,11 @@ export default function AdminBookingsPage() {
               {selectedBooking.agreement && (
                 <div className="flex flex-col gap-2 border-t border-white/5 pt-4">
                   <span className="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Agreement E-Signature</span>
-                  <div className="p-2 bg-[#0A0A0A] border border-white/5 rounded-lg flex items-center justify-center h-20">
+                  <div className="p-2 bg-white border border-white/5 rounded-lg flex items-center justify-center h-20">
                     <img 
                       src={selectedBooking.agreement.signature} 
                       alt="Customer drawn signature"
-                      className="max-h-full max-w-full object-contain filter invert brightness-200"
+                      className="max-h-full max-w-full object-contain"
                     />
                   </div>
                 </div>

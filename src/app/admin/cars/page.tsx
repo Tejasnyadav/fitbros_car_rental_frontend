@@ -173,11 +173,17 @@ export default function AdminFleetCrudPage() {
                     {car.type}
                   </span>
                   <span className={`text-[8px] uppercase tracking-widest px-2.5 py-1 rounded font-extrabold border ${
-                    car.status === 'AVAILABLE' 
+                    car.isAvailable !== false && car.status === 'AVAILABLE'
                       ? 'bg-green-500/10 text-green-500 border-green-500/20' 
-                      : 'bg-red-500/10 text-red-500 border-red-500/20'
+                      : car.status === 'MAINTENANCE'
+                      ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                      : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
                   }`}>
-                    {car.status}
+                    {car.isAvailable !== false && car.status === 'AVAILABLE'
+                      ? 'AVAILABLE'
+                      : car.status === 'MAINTENANCE'
+                      ? 'MAINTENANCE'
+                      : car.availabilityMessage?.toUpperCase() || 'BOOKED'}
                   </span>
                 </div>
               </div>
