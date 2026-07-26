@@ -36,7 +36,7 @@ export default function LoginPage() {
 
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 flex items-center justify-center mb-3">
-            <img src="/logo.svg" alt="FitBros Logo" className="w-full h-full object-contain" />
+            <img src="/logo.png" alt="FitBros Logo" className="w-full h-full object-contain rounded-xl" />
           </div>
           <h2 className="font-luxury font-bold text-2xl text-white tracking-wide">Welcome Back</h2>
           <p className="text-xs text-gray-400 mt-1 font-medium">Log in to manage bookings and active trips</p>

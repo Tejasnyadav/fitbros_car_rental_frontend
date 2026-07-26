@@ -471,7 +471,19 @@ export default function AdminBookingsPage() {
               {/* Agreement electronic signature render */}
               {selectedBooking.agreement && (
                 <div className="flex flex-col gap-2 border-t border-white/5 pt-4">
-                  <span className="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Agreement E-Signature</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Agreement E-Signature</span>
+                    {selectedBooking.agreement.pdfUrl && (
+                      <a 
+                        href={selectedBooking.agreement.pdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[9px] font-bold text-yellow-400 hover:text-yellow-300 flex items-center gap-1 cursor-pointer"
+                      >
+                        <FileText className="w-3 h-3" /> View Agreement PDF
+                      </a>
+                    )}
+                  </div>
                   <div className="p-2 bg-white border border-white/5 rounded-lg flex items-center justify-center h-20">
                     <img 
                       src={selectedBooking.agreement.signature} 

@@ -88,9 +88,9 @@ export default function Navbar() {
       {/* Brand logo */}
       <a href={isAdminPath ? '/admin/dashboard' : '/'} className="flex items-center gap-2.5 group cursor-pointer">
         <img 
-          src="/logo.svg" 
+          src="/logo.png" 
           alt="FitBros Logo" 
-          className="w-10 h-10 object-contain group-hover:scale-105 transition-transform duration-300"
+          className="h-10 w-auto object-contain rounded-lg group-hover:scale-105 transition-transform duration-300"
         />
         <div>
           <span className="font-luxury font-extrabold text-xl tracking-wider text-white">FITBROS</span>

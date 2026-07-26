@@ -67,6 +67,7 @@ export interface Agreement {
   id: string;
   bookingId: string;
   signature: string; // Base64 data URL
+  pdfUrl?: string;
 }
 
 export interface Payment {

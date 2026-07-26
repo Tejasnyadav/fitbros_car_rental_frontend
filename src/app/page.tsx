@@ -45,9 +45,9 @@ export default function LandingPage() {
   };
 
   useEffect(() => {
-    // Initial fetch of available fleet
+    // Fetch fleet whenever categories or gearbox filters are toggled
     fetchCars();
-  }, []);
+  }, [selectedTypes, transmission]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,8 +238,12 @@ export default function LandingPage() {
               return (
                 <div
                   key={car.id}
-                  className={`glass-panel rounded-2xl overflow-hidden flex flex-col group border border-white/5 transition-all duration-300 relative ${isBlocked ? 'opacity-85' : 'hover:border-white/10 hover:shadow-xl'
-                    }`}
+                  onClick={() => !isBlocked && handleSelectCar(car)}
+                  className={`glass-panel rounded-2xl overflow-hidden flex flex-col group border border-white/5 transition-all duration-300 relative ${
+                    isBlocked 
+                      ? 'opacity-85' 
+                      : 'hover:border-white/10 hover:shadow-xl cursor-pointer'
+                  }`}
                 >
 
                   {/* Car Image container */}
@@ -300,7 +304,10 @@ export default function LandingPage() {
                     {/* Book Action */}
                     <div className="mt-6">
                       <button
-                        onClick={() => handleSelectCar(car)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectCar(car);
+                        }}
                         disabled={isBlocked}
                         className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all duration-300 transform active:scale-[0.98] cursor-pointer ${isBlocked
                             ? 'bg-neutral-800 text-gray-600 border border-neutral-700 cursor-not-allowed'

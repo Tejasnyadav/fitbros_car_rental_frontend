@@ -79,8 +79,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user);
       router.push('/dashboard');
     } catch (err) {
-      setLoading(false);
       throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -91,8 +92,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAdmin(data.user);
       router.push('/admin/dashboard');
     } catch (err) {
-      setLoading(false);
       throw err;
+    } finally {
+      setLoading(false);
     }
   };
 

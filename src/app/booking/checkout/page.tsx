@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { carService, bookingService } from '../../../services/api';
 import { Car } from '../../../types';
-import { Award, AlertTriangle, User, Calendar, MapPin, ClipboardList, PenTool, UploadCloud, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Award, AlertTriangle, User, Calendar, MapPin, ClipboardList, PenTool, UploadCloud, ArrowRight, ArrowLeft, FileText, Eye } from 'lucide-react';
 
 function CheckoutPageContent() {
   const router = useRouter();
@@ -239,7 +239,8 @@ function CheckoutPageContent() {
       aadhaar,
       pan,
       selfie,
-      signature: signatureData
+      signature: signatureData,
+      pdfUrl: '/lease_agreement.pdf'
     };
 
     try {
@@ -407,12 +408,22 @@ function CheckoutPageContent() {
               <PenTool className="w-5 h-5 text-yellow-400" /> 2. Agreement & Electronic Signature
             </h3>
 
-            <div className="p-4 rounded-xl bg-white/5 border border-white/5 max-h-48 overflow-y-auto text-xs text-gray-400 leading-relaxed font-medium">
-              <p className="font-bold text-white mb-2">FITBROS CAR RENTAL STANDARD AGREEMENT</p>
-              <p className="mb-2">1. The Renter agrees to operate the vehicle in compliance with traffic laws. Any traffic infractions, toll charges, or parking violations incurred during the lease duration are the sole liability of the renter.</p>
-              <p className="mb-2">2. Only the primary driver who undergoes document verification is authorized to drive the vehicle. Subleasing is strictly prohibited.</p>
-              <p className="mb-2">3. The vehicle must be returned to the preferred pickup location with a full tank of fuel. Check-out closure checks will be executed by administrative check-in teams.</p>
-              <p>4. I certify that all uploaded identity documents are valid and correct.</p>
+            <div className="p-4 sm:p-5 rounded-xl bg-yellow-400/5 border border-yellow-400/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="flex items-start gap-2.5">
+                <FileText className="w-9 h-9 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-luxury font-bold text-xs text-white uppercase tracking-wider">FITBROS LEASE AGREEMENT</h4>
+                  <p className="text-[10px] text-gray-400 mt-1 leading-normal font-semibold font-sans">Please open and review the full lease agreement PDF before signing.</p>
+                </div>
+              </div>
+              <a 
+                href="/lease_agreement.pdf" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="px-4 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black text-[10px] font-extrabold uppercase tracking-widest rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer self-stretch sm:self-auto text-center justify-center"
+              >
+                <Eye className="w-3.5 h-3.5" /> View PDF
+              </a>
             </div>
 
             <div className="flex items-center gap-3">
@@ -424,7 +435,7 @@ function CheckoutPageContent() {
                 className="w-4 h-4 accent-yellow-400 cursor-pointer rounded"
               />
               <label htmlFor="terms" className="text-xs font-bold text-gray-300 cursor-pointer select-none">
-                I agree to the Terms & Conditions and certify vehicle usage policies.
+                I have opened, read, and agree to the terms of the Lease Agreement.
               </label>
             </div>
 
