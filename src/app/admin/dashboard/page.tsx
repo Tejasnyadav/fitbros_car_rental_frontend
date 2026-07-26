@@ -159,6 +159,43 @@ export default function AdminDashboardPage() {
 
       </div>
 
+      {/* Fleet performance details */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="glass-panel rounded-2xl p-6 border border-white/5 flex items-center justify-between relative overflow-hidden">
+          <div className="absolute -right-10 -bottom-10 w-32 h-32 rounded-full bg-yellow-400/5 blur-2xl pointer-events-none"></div>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-yellow-400/10 flex items-center justify-center text-yellow-400">
+              <TrendingUp className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Most Booked Vehicle</span>
+              <span className="text-base font-bold text-white mt-1 block">{stats.mostBooked?.name || 'N/A'}</span>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-lg font-extrabold text-yellow-400 block">{stats.mostBooked?.count || 0}</span>
+            <span className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">Total Bookings</span>
+          </div>
+        </div>
+
+        <div className="glass-panel rounded-2xl p-6 border border-white/5 flex items-center justify-between relative overflow-hidden">
+          <div className="absolute -right-10 -bottom-10 w-32 h-32 rounded-full bg-red-500/5 blur-2xl pointer-events-none"></div>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
+              <TrendingUp className="w-6 h-6 rotate-180" />
+            </div>
+            <div>
+              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Least Booked Vehicle</span>
+              <span className="text-base font-bold text-white mt-1 block">{stats.leastBooked?.name || 'N/A'}</span>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-lg font-extrabold text-red-500 block">{stats.leastBooked?.count || 0}</span>
+            <span className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">Total Bookings</span>
+          </div>
+        </div>
+      </div>
+
       {/* 2. Visualizations Graphs Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
@@ -234,6 +271,49 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
+      </div>
+
+      {/* 3. Customer Bookings Directory */}
+      <div className="glass-panel rounded-2xl border border-white/5 overflow-hidden">
+        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+          <div>
+            <h4 className="text-xs font-bold text-white uppercase tracking-widest font-luxury">Customer Bookings Directory</h4>
+            <p className="text-[10px] text-gray-400 mt-1 font-medium font-sans">Registered customers who have placed reservations</p>
+          </div>
+          <span className="text-[9px] uppercase font-extrabold px-3 py-1 rounded-full bg-yellow-400/10 text-yellow-400 border border-yellow-400/20 font-luxury">
+            {stats.userDetails?.length || 0} Customers
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-white/5 border-b border-white/5 text-[9px] uppercase tracking-wider text-gray-400 font-bold">
+                <th className="p-4">Customer Name</th>
+                <th className="p-4">Email Address</th>
+                <th className="p-4">Mobile Number</th>
+                <th className="p-4 text-center">Bookings Count</th>
+                <th className="p-4 text-right">Total Spent</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5 text-xs text-gray-300">
+              {!stats.userDetails || stats.userDetails.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-gray-500 font-medium">No customer booking records found.</td>
+                </tr>
+              ) : (
+                stats.userDetails.map((u) => (
+                  <tr key={u.id} className="hover:bg-white/5 transition-colors">
+                    <td className="p-4 font-bold text-white">{u.name}</td>
+                    <td className="p-4 font-semibold">{u.email}</td>
+                    <td className="p-4 text-gray-400 font-semibold">{u.phone}</td>
+                    <td className="p-4 text-center font-extrabold text-yellow-400">{u.bookingsCount}</td>
+                    <td className="p-4 text-right font-extrabold text-white">₹{u.totalSpend}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>

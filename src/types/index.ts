@@ -102,6 +102,16 @@ export interface DashboardStats {
   pendingApprovals: number;
   completedTrips: number;
   monthlyBookings: number;
+  mostBooked?: { name: string; count: number };
+  leastBooked?: { name: string; count: number };
+  userDetails?: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    bookingsCount: number;
+    totalSpend: number;
+  }[];
 }
 
 export interface ChartDataPoint {
