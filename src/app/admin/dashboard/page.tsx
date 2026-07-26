@@ -13,19 +13,24 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [charts, setCharts] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchStats = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminDashboardService.getStats();
+      setStats(data.stats);
+      setCharts(data.charts);
+    } catch (err: any) {
+      console.error('Failed to load dashboard metrics', err);
+      setError(err.response?.data?.message || err.message || 'Failed to connect to the backend server.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const data = await adminDashboardService.getStats();
-        setStats(data.stats);
-        setCharts(data.charts);
-      } catch (err) {
-        console.error('Failed to load dashboard metrics', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     if (!authLoading && admin) {
       fetchStats();
     }
@@ -41,6 +46,28 @@ export default function AdminDashboardPage() {
 
   if (!admin) {
     return null;
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[#0A0A0A] px-6 text-white">
+        <div className="max-w-md w-full glass-panel rounded-2xl p-8 border border-red-500/10 text-center flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="font-bold text-white text-base font-luxury">Analytics Error</h3>
+            <p className="text-xs text-gray-500 mt-2 leading-relaxed font-semibold">{error}</p>
+          </div>
+          <button
+            onClick={fetchStats}
+            className="w-full mt-4 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer transform active:scale-95"
+          >
+            Retry Loading
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (loading || !stats || !charts) {
