@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MapPin, Mail, Phone, Clock, Send, CheckCircle2 } from 'lucide-react';
+import { MapPin, Mail, Phone, Clock, Send, CheckCircle2, FileText } from 'lucide-react';
 
 export default function ContactPage() {
   const [name, setName] = useState('');
@@ -104,6 +104,19 @@ export default function ContactPage() {
               <p className="text-xs text-gray-400 mt-2 font-semibold">
                 Monday – Saturday: <span className="text-white">09:00 AM – 09:00 PM</span><br />
                 Sunday: <span className="text-white">10:00 AM – 06:00 PM</span>
+              </p>
+            </div>
+          </div>
+
+          {/* GST Box */}
+          <div className="glass-panel rounded-xl p-5 border border-white/5 flex gap-4 transition-all duration-300 hover:border-yellow-400/30">
+            <div className="w-10 h-10 rounded-lg bg-yellow-400/10 flex items-center justify-center text-yellow-400 flex-shrink-0">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">GST IN</h4>
+              <p className="text-xs text-gray-400 mt-2 font-semibold font-mono">
+                29ABTPZ3427C1Z4
               </p>
             </div>
           </div>
