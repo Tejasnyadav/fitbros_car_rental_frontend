@@ -171,6 +171,13 @@ function CheckoutPageContent() {
       return;
     }
 
+    // Validate size (max 2.5MB per file to prevent slow network payloads and storage bloat)
+    if (file.size > 2.5 * 1024 * 1024) {
+      setWarningMsg('File is too large. Please upload files smaller than 2.5MB.');
+      e.target.value = '';
+      return;
+    }
+
     // Read base64
     const reader = new FileReader();
     reader.readAsDataURL(file);
