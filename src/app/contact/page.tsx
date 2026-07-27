@@ -63,7 +63,7 @@ export default function ContactPage() {
               <p className="text-xs text-gray-400 mt-2 leading-relaxed font-semibold">
                 FitBros Car Rental Headquarters<br />
                 51, Dayananda Sagar College Road, 2nd Cross,<br />
-                1st Stage, Teachers Colony, Bengaluru, KA - 560078
+                1st Stage, Teachers Colony, Bengaluru, Bengaluru Urban, Karnataka, 560078
               </p>
             </div>
           </div>
@@ -74,10 +74,9 @@ export default function ContactPage() {
               <Mail className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Email Addresses</h4>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Email Address</h4>
               <p className="text-xs text-gray-400 mt-2 font-semibold">
-                General Queries: <a href="mailto:contact@fitbros.com" className="text-white hover:text-yellow-400 transition-colors">contact@fitbros.com</a><br />
-                Premium Support: <a href="mailto:support@fitbros.com" className="text-white hover:text-yellow-400 transition-colors">support@fitbros.com</a>
+                Email: <a href="mailto:fitbrosindia3@gmail.com" className="text-white hover:text-yellow-400 transition-colors">fitbrosindia3@gmail.com</a>
               </p>
             </div>
           </div>
@@ -90,8 +89,7 @@ export default function ContactPage() {
             <div>
               <h4 className="text-xs font-bold text-white uppercase tracking-wider">Phone Hotline</h4>
               <p className="text-xs text-gray-400 mt-2 font-semibold">
-                Toll Free: <span className="text-white">1800-420-BROS (2767)</span><br />
-                Bengaluru Hub: <span className="text-white">+91 98765 43210</span>
+                Phone Number: <span className="text-white">+91 97438 54269</span>
               </p>
             </div>
           </div>
@@ -207,7 +205,7 @@ export default function ContactPage() {
         </div>
         <div className="h-80 relative bg-[#171717] overflow-hidden">
           <iframe 
-            src="https://maps.google.com/maps?q=51,%20Dayananda%20Sagar%20College%20Road,%202nd%20Cross,%201st%20Stage,%20Teachers%20Colony,%20Bengaluru,%20Karnataka%20560078&t=&z=16&ie=UTF8&iwloc=B&output=embed"
+            src="https://maps.google.com/maps?q=51,%20Dayananda%20Sagar%20College%20Road,%202nd%20Cross,%201st%20Stage,%20Teachers%20Colony,%20Bengaluru,%20Bengaluru%20Urban,%20Karnataka,%20560078&t=&z=16&ie=UTF8&iwloc=B&output=embed"
             title="FitBros Hub Map Location"
             className="w-full h-full border-0 opacity-80 transition-opacity duration-300 hover:opacity-100"
             style={{ filter: 'grayscale(100%) invert(92%) contrast(110%)' }}
