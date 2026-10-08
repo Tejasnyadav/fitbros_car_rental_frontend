@@ -70,10 +70,12 @@ export interface Agreement {
   pdfUrl?: string;
 }
 
+export type PaymentMethod = 'UPI' | 'Card' | 'Cash' | 'Wallet' | 'NetBanking' | 'EMI' | 'PayLater' | 'Unknown';
+
 export interface Payment {
   id: string;
   bookingId: string;
-  method: 'UPI' | 'Card' | 'Cash';
+  method: PaymentMethod;
   amount: number;
   status: PaymentStatus;
   createdAt: string;

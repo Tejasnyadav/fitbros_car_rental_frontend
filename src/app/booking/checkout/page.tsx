@@ -85,17 +85,40 @@ function CheckoutPageContent() {
     }
   }, [step]);
 
+  const getPos = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  };
+
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if ('touches' in e && e.cancelable) {
       e.preventDefault();
     }
     if (!canvasRef.current) return;
-    setIsDrawing(true);
+
     const ctx = canvasRef.current.getContext('2d');
     if (!ctx) return;
 
-    ctx.beginPath();
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2.5;
+
+    setIsDrawing(true);
     const pos = getPos(e);
+    ctx.beginPath();
     ctx.moveTo(pos.x, pos.y);
   };
 
@@ -113,29 +136,16 @@ function CheckoutPageContent() {
   };
 
   const stopDrawing = () => {
+    if (!isDrawing) return;
     setIsDrawing(false);
     saveSignature();
-  };
-
-  const getPos = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    
-    // Support mouse and touch
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
-    };
   };
 
   const clearSignature = () => {
     if (!canvasRef.current) return;
     const ctx = canvasRef.current.getContext('2d');
     if (ctx) {
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
       setSignatureData(null);
@@ -144,7 +154,9 @@ function CheckoutPageContent() {
 
   const saveSignature = () => {
     if (!canvasRef.current) return;
-    // Check if canvas is empty
+    const ctx = canvasRef.current.getContext('2d');
+    if (!ctx) return;
+
     const blank = document.createElement('canvas');
     blank.width = canvasRef.current.width;
     blank.height = canvasRef.current.height;
@@ -153,8 +165,14 @@ function CheckoutPageContent() {
       blankCtx.fillStyle = '#FFFFFF';
       blankCtx.fillRect(0, 0, blank.width, blank.height);
     }
-    if (canvasRef.current.toDataURL() !== blank.toDataURL()) {
-      setSignatureData(canvasRef.current.toDataURL());
+
+    const dataUrl = canvasRef.current.toDataURL('image/png');
+    const blankDataUrl = blank.toDataURL('image/png');
+
+    if (dataUrl !== blankDataUrl) {
+      setSignatureData(dataUrl);
+    } else {
+      setSignatureData(null);
     }
   };
 
@@ -199,7 +217,7 @@ function CheckoutPageContent() {
 
   const days = calculateDays();
   const rentalCost = car ? car.pricePerDay * days : 0;
-  const taxes = Math.round(rentalCost * 0.1); // 10% tax
+  const taxes = Math.round(rentalCost * 0.05); // 10% tax
   const totalAmount = rentalCost + taxes;
 
   const handleNextStep = () => {
@@ -459,8 +477,8 @@ function CheckoutPageContent() {
               </div>
               <canvas
                 ref={canvasRef}
-                width={500}
-                height={200}
+                width={700}
+                height={220}
                 onMouseDown={startDrawing}
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}
@@ -636,7 +654,7 @@ function CheckoutPageContent() {
             </div>
 
             <div className="flex justify-between items-center text-gray-400">
-              <span>Taxes & Fees (10%)</span>
+              <span>Taxes & Fees (5%)</span>
               <span className="text-white font-bold">₹{taxes}</span>
             </div>
 

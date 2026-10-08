@@ -88,10 +88,23 @@ export default function UserDashboardPage() {
     try {
       // 1. Create Razorpay order on backend
       const orderData = await bookingService.createRazorpayOrder(activeBooking.id);
+      const frontendKey = (process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '').trim();
+      const backendKey = (orderData.keyId || '').trim();
+      const selectedKey = frontendKey || backendKey;
+
+      if (!selectedKey) {
+        setPaymentError('Razorpay public key is missing. Check the frontend environment configuration.');
+        setPaying(false);
+        return;
+      }
+
+      if (frontendKey && backendKey && frontendKey !== backendKey) {
+        console.warn('Razorpay key mismatch between frontend and backend environment. Using the frontend key, but you should align both to the same test/live mode.');
+      }
 
       // 2. Setup checkout options
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || orderData.keyId,
+        key: selectedKey,
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'FitBros Car Rental',
@@ -100,10 +113,14 @@ export default function UserDashboardPage() {
         handler: async (response: any) => {
           setPaying(true);
           try {
+            const selectedMethod = paymentMethod === 'UPI' ? 'UPI' : 'Card';
             await bookingService.verifyRazorpayPayment(activeBooking.id, {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature
+              razorpay_signature: response.razorpay_signature,
+              payment_method: selectedMethod,
+              method: selectedMethod,
+              paymentMethod: selectedMethod
             });
             await fetchDashboardData();
           } catch (verifErr: any) {

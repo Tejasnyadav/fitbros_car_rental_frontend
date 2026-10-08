@@ -513,7 +513,7 @@ export default function AdminBookingsPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500 text-[10px]">Method</span>
-                      <span className="text-white text-[10px]">{selectedBooking.payment.method}</span>
+                      <span className="text-white text-[10px]">{selectedBooking.payment.method || 'Unknown'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500 text-[10px]">Total Paid</span>

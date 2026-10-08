@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { User, Car, Booking, Notification, DashboardStats } from '../types';
+import { User, Car, Booking, Notification, DashboardStats, PaymentMethod } from '../types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -88,10 +88,17 @@ export const bookingService = {
     return res.data;
   },
   createRazorpayOrder: async (id: string) => {
-    const res = await api.post<{ orderId: string; amount: number; currency: string; keyId: string }>(`/bookings/${id}/razorpay-order`);
+    const res = await api.post<{ orderId: string; amount: number; currency: string; keyId: string; mode: string }>(`/bookings/${id}/razorpay-order`);
     return res.data;
   },
-  verifyRazorpayPayment: async (id: string, data: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
+  verifyRazorpayPayment: async (id: string, data: {
+    razorpay_payment_id: string;
+    razorpay_order_id: string;
+    razorpay_signature: string;
+    payment_method?: PaymentMethod;
+    method?: PaymentMethod;
+    paymentMethod?: PaymentMethod;
+  }) => {
     const res = await api.post<{ message: string; booking: Booking }>(`/bookings/${id}/verify-payment`, data);
     return res.data;
   },
