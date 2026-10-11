@@ -6,6 +6,8 @@ import { carService, bookingService } from '../../../services/api';
 import { Car } from '../../../types';
 import { Award, AlertTriangle, User, Calendar, MapPin, ClipboardList, PenTool, UploadCloud, ArrowRight, ArrowLeft, FileText, Eye } from 'lucide-react';
 
+const MAX_KYC_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
 function CheckoutPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -13,6 +15,8 @@ function CheckoutPageContent() {
   const carId = searchParams.get('carId');
   const fromDateQuery = searchParams.get('fromDate') || '';
   const toDateQuery = searchParams.get('toDate') || '';
+  const pickupTimeQuery = searchParams.get('pickupTime') || '10:00';
+  const returnTimeQuery = searchParams.get('returnTime') || '10:00';
 
   const [car, setCar] = useState<Car | null>(null);
   const [loadingCar, setLoadingCar] = useState(true);
@@ -24,6 +28,8 @@ function CheckoutPageContent() {
   // STEP 1 Form Details
   const [fromDate, setFromDate] = useState(fromDateQuery);
   const [toDate, setToDate] = useState(toDateQuery);
+  const [pickupTime, setPickupTime] = useState(pickupTimeQuery);
+  const [returnTime, setReturnTime] = useState(returnTimeQuery);
   const [destination, setDestination] = useState('');
   const [purpose, setPurpose] = useState('');
   const [members, setMembers] = useState<number | ''>(1);
@@ -189,9 +195,8 @@ function CheckoutPageContent() {
       return;
     }
 
-    // Validate size (max 2.5MB per file to prevent slow network payloads and storage bloat)
-    if (file.size > 2.5 * 1024 * 1024) {
-      setWarningMsg('File is too large. Please upload files smaller than 2.5MB.');
+    if (file.size > MAX_KYC_FILE_SIZE_BYTES) {
+      setWarningMsg('File is too large. Please upload files no larger than 10MB.');
       e.target.value = '';
       return;
     }
@@ -205,19 +210,21 @@ function CheckoutPageContent() {
   };
 
   // Cost calculations
+  const getRentalPeriod = () => ({
+    start: new Date(`${fromDate}T${pickupTime}:00`),
+    end: new Date(`${toDate}T${returnTime}:00`)
+  });
+
   const calculateDays = () => {
-    if (!fromDate || !toDate) return 0;
-    const start = new Date(fromDate);
-    const end = new Date(toDate);
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
-    const diff = end.getTime() - start.getTime();
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    return days > 0 ? days : 0;
+    if (!fromDate || !toDate || !pickupTime || !returnTime) return 0;
+    const { start, end } = getRentalPeriod();
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) return 0;
+    return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
   };
 
   const days = calculateDays();
   const rentalCost = car ? car.pricePerDay * days : 0;
-  const taxes = Math.round(rentalCost * 0.05); // 10% tax
+  const taxes = Math.round(rentalCost * 0.05);
   const totalAmount = rentalCost + taxes;
 
   const handleNextStep = () => {
@@ -226,8 +233,16 @@ function CheckoutPageContent() {
         setWarningMsg('Please fill in all booking details fields with valid values.');
         return;
       }
+      if (!fromDate || !toDate || !pickupTime || !returnTime) {
+        setWarningMsg('Please select both pickup and return dates and times.');
+        return;
+      }
       if (days <= 0) {
-        setWarningMsg('Pickup date and return date must define a positive rental duration.');
+        setWarningMsg('Return date and time must be after pickup date and time.');
+        return;
+      }
+      if (getRentalPeriod().start <= new Date()) {
+        setWarningMsg('Pickup date and time must be in the future.');
         return;
       }
     } else if (step === 2) {
@@ -254,8 +269,8 @@ function CheckoutPageContent() {
 
     const payload = {
       carId,
-      fromDate,
-      toDate,
+      fromDate: getRentalPeriod().start.toISOString(),
+      toDate: getRentalPeriod().end.toISOString(),
       destination,
       purpose,
       members,
@@ -350,7 +365,20 @@ function CheckoutPageContent() {
                 <input 
                   type="date"
                   value={fromDate}
+                  min={new Date().toISOString().split('T')[0]}
                   onChange={(e) => setFromDate(e.target.value)}
+                  required
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 font-semibold"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pickup Time</label>
+                <input
+                  type="time"
+                  value={pickupTime}
+                  onChange={(e) => setPickupTime(e.target.value)}
+                  required
                   className="w-full px-4 py-2.5 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 font-semibold"
                 />
               </div>
@@ -360,7 +388,20 @@ function CheckoutPageContent() {
                 <input 
                   type="date"
                   value={toDate}
+                  min={fromDate || new Date().toISOString().split('T')[0]}
                   onChange={(e) => setToDate(e.target.value)}
+                  required
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 font-semibold"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Return Time</label>
+                <input
+                  type="time"
+                  value={returnTime}
+                  onChange={(e) => setReturnTime(e.target.value)}
+                  required
                   className="w-full px-4 py-2.5 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 font-semibold"
                 />
               </div>

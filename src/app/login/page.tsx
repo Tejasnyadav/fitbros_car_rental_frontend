@@ -20,7 +20,18 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await login({ email, password });
+      const params = new URLSearchParams(window.location.search);
+      const redirectToBooking = params.get('redirect') === 'booking';
+      const carId = params.get('carId');
+      const fromDate = params.get('fromDate');
+      const toDate = params.get('toDate');
+      const pickupTime = params.get('pickupTime');
+      const returnTime = params.get('returnTime');
+      const redirectTo = redirectToBooking && carId && fromDate && toDate && pickupTime && returnTime
+        ? `/booking/checkout?${new URLSearchParams({ carId, fromDate, toDate, pickupTime, returnTime }).toString()}`
+        : undefined;
+
+      await login({ email, password }, redirectTo);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please verify credentials.');
       setSubmitting(false);

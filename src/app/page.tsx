@@ -14,6 +14,8 @@ export default function LandingPage() {
   // Search States
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [pickupTime, setPickupTime] = useState('10:00');
+  const [returnTime, setReturnTime] = useState('10:00');
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [transmission, setTransmission] = useState('');
 
@@ -23,13 +25,21 @@ export default function LandingPage() {
   const [searched, setSearched] = useState(false);
   const [warningMsg, setWarningMsg] = useState<string | null>(null);
 
+  const getRentalPeriod = () => ({
+    start: new Date(`${fromDate}T${pickupTime}:00`),
+    end: new Date(`${toDate}T${returnTime}:00`)
+  });
+
   const fetchCars = async () => {
     setLoading(true);
     try {
       const typeParam = selectedTypes.join(',');
+      const { start, end } = getRentalPeriod();
       const params = {
-        ...(fromDate && { fromDate }),
-        ...(toDate && { toDate }),
+        ...(fromDate && toDate && {
+          fromDate: start.toISOString(),
+          toDate: end.toISOString()
+        }),
         ...(typeParam && { type: typeParam }),
         ...(transmission && { transmission })
       };
@@ -52,10 +62,9 @@ export default function LandingPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (fromDate && toDate) {
-      const start = new Date(fromDate);
-      const end = new Date(toDate);
-      if (start >= end) {
-        setWarningMsg('Return date must be after pickup date.');
+      const { start, end } = getRentalPeriod();
+      if (end <= start) {
+        setWarningMsg('Return date and time must be after pickup date and time.');
         return;
       }
     }
@@ -76,20 +85,27 @@ export default function LandingPage() {
       return;
     }
 
-    const start = new Date(fromDate);
-    const end = new Date(toDate);
-    if (start >= end) {
-      setWarningMsg('Return date must be after pickup date.');
+    const { start, end } = getRentalPeriod();
+    if (end <= start) {
+      setWarningMsg('Return date and time must be after pickup date and time.');
       return;
     }
+
+    const bookingParams = new URLSearchParams({
+      carId: car.id,
+      fromDate,
+      toDate,
+      pickupTime,
+      returnTime
+    });
 
     if (!user) {
       // Redirect to login if user not logged in
-      router.push(`/login?redirect=booking&carId=${car.id}&fromDate=${fromDate}&toDate=${toDate}`);
+      router.push(`/login?redirect=booking&${bookingParams.toString()}`);
       return;
     }
 
-    router.push(`/booking/checkout?carId=${car.id}&fromDate=${fromDate}&toDate=${toDate}`);
+    router.push(`/booking/checkout?${bookingParams.toString()}`);
   };
 
   const carTypes = ['Hatchback', 'Sedan', 'SUV', 'Luxury'];
@@ -132,6 +148,32 @@ export default function LandingPage() {
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
+                className="w-full px-4 py-3 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 transition-all font-semibold"
+              />
+            </div>
+
+            {/* Pickup Time */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-yellow-400" /> Pickup Time
+              </label>
+              <input
+                type="time"
+                value={pickupTime}
+                onChange={(e) => setPickupTime(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 transition-all font-semibold"
+              />
+            </div>
+
+            {/* Return Time */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-yellow-400" /> Return Time
+              </label>
+              <input
+                type="time"
+                value={returnTime}
+                onChange={(e) => setReturnTime(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 transition-all font-semibold"
               />
             </div>
@@ -218,7 +260,7 @@ export default function LandingPage() {
           </div>
           {fromDate && toDate && (
             <span className="text-[10px] sm:text-xs bg-yellow-400/10 text-yellow-400 border border-yellow-400/20 px-3 py-1.5 rounded-full font-bold self-start sm:self-auto">
-              Verification Active: {new Date(fromDate).toLocaleDateString([], { month: 'short', day: 'numeric' })} – {new Date(toDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+              Selected rental: {new Date(`${fromDate}T${pickupTime}:00`).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} – {new Date(`${toDate}T${returnTime}:00`).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
             </span>
           )}
         </div>

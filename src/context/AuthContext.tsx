@@ -9,7 +9,7 @@ interface AuthContextType {
   user: User | null;
   admin: User | null;
   loading: boolean;
-  login: (credentials: any) => Promise<void>;
+  login: (credentials: any, redirectTo?: string) => Promise<void>;
   adminLogin: (credentials: any) => Promise<void>;
   logout: () => Promise<void>;
   adminLogout: () => Promise<void>;
@@ -72,12 +72,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user, admin, loading, pathname, router]);
 
-  const login = async (credentials: any) => {
+  const login = async (credentials: any, redirectTo?: string) => {
     setLoading(true);
     try {
       const data = await authService.login(credentials);
       setUser(data.user);
-      router.push('/dashboard');
+      router.push(redirectTo || '/dashboard');
     } catch (err) {
       throw err;
     } finally {
@@ -142,4 +142,3 @@ export const useAuth = () => {
 // Workaround for TypeScript referencing issue in older react versions
 const Auth = AuthContext;
 export default AuthContext;
-

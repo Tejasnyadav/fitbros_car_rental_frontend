@@ -4,7 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { bookingService } from '../../../services/api';
 import { Booking } from '../../../types';
 import { useAuth } from '../../../context/AuthContext';
-import { Calendar, Users, ClipboardCheck, Award, XSquare, Clock, MapPin, Eye, FileText, CheckCircle2, XCircle, X } from 'lucide-react';
+import { Calendar, Users, ClipboardCheck, Award, XSquare, Clock, MapPin, Eye, FileText, CheckCircle2, XCircle, X, Trash2 } from 'lucide-react';
+
+const formatBookingDateTime = (value: string) =>
+  new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 
 export default function AdminBookingsPage() {
   const { admin, loading: authLoading } = useAuth();
@@ -152,6 +155,25 @@ export default function AdminBookingsPage() {
     }
   };
 
+  const handleDeleteBooking = async () => {
+    if (!selectedBooking || processing) return;
+    const bookingToDelete = selectedBooking;
+    if (!window.confirm(`Permanently delete booking #${bookingToDelete.id.substring(18)} and its associated documents and payment records?`)) {
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      await bookingService.adminDelete(bookingToDelete.id);
+      setBookings((current) => current.filter((booking) => booking.id !== bookingToDelete.id));
+      setSelectedBooking(null);
+    } catch (err) {
+      alert('Failed to delete booking.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const getStatusStyle = (status: Booking['status']) => {
     switch (status) {
       case 'PENDING_ADMIN_APPROVAL': return 'bg-yellow-400/10 text-yellow-400 border-yellow-400/20';
@@ -286,11 +308,11 @@ export default function AdminBookingsPage() {
                     </div>
                     <div>
                       <span className="text-[8px] uppercase text-gray-500 block mb-0.5">Pickup</span>
-                      <span className="text-white font-medium">{new Date(b.fromDate).toLocaleDateString()}</span>
+                      <span className="text-white font-medium">{formatBookingDateTime(b.fromDate)}</span>
                     </div>
                     <div>
                       <span className="text-[8px] uppercase text-gray-500 block mb-0.5">Return</span>
-                      <span className="text-white font-medium">{new Date(b.toDate).toLocaleDateString()}</span>
+                      <span className="text-white font-medium">{formatBookingDateTime(b.toDate)}</span>
                     </div>
                   </div>
                 </div>
@@ -333,8 +355,8 @@ export default function AdminBookingsPage() {
                         <td className="p-4 font-bold text-white">#{b.id.substring(18)}</td>
                         <td className="p-4 font-semibold">{b.user?.name}</td>
                         <td className="p-4">{b.car?.name}</td>
-                        <td className="p-4 font-medium">{new Date(b.fromDate).toLocaleDateString()}</td>
-                        <td className="p-4 font-medium">{new Date(b.toDate).toLocaleDateString()}</td>
+                        <td className="p-4 font-medium">{formatBookingDateTime(b.fromDate)}</td>
+                        <td className="p-4 font-medium">{formatBookingDateTime(b.toDate)}</td>
                         <td className="p-4">
                           <span className={`text-[9px] uppercase font-bold border px-2 py-0.5 rounded-full ${getStatusStyle(b.status)}`}>
                             {b.status.replace(/_/g, ' ')}
@@ -379,11 +401,11 @@ export default function AdminBookingsPage() {
                 <div className="grid grid-cols-2 gap-3 text-[10px] font-semibold text-gray-400 mt-1">
                   <div>
                     <span className="block text-[8px] uppercase text-gray-500">Pickup</span>
-                    <span className="text-white mt-0.5 block">{new Date(selectedBooking.fromDate).toLocaleDateString()}</span>
+                    <span className="text-white mt-0.5 block">{formatBookingDateTime(selectedBooking.fromDate)}</span>
                   </div>
                   <div>
                     <span className="block text-[8px] uppercase text-gray-500">Return</span>
-                    <span className="text-white mt-0.5 block">{new Date(selectedBooking.toDate).toLocaleDateString()}</span>
+                    <span className="text-white mt-0.5 block">{formatBookingDateTime(selectedBooking.toDate)}</span>
                   </div>
                   <div className="col-span-2">
                     <span className="block text-[8px] uppercase text-gray-500">Pickup Lounge Hub</span>
@@ -602,6 +624,15 @@ export default function AdminBookingsPage() {
                     )}
                   </>
                 )}
+                <button
+                  type="button"
+                  onClick={handleDeleteBooking}
+                  disabled={processing}
+                  className="w-full py-3 bg-red-600/10 border border-red-600/25 text-red-400 hover:bg-red-600 hover:text-white disabled:opacity-50 font-extrabold text-[10px] uppercase tracking-widest rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {processing ? 'Processing...' : 'Delete Booking'}
+                </button>
               </div>
 
             </div>

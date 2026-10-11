@@ -130,6 +130,10 @@ export const bookingService = {
   adminClose: async (id: string) => {
     const res = await api.post<{ message: string; booking: Booking }>(`/admin/bookings/${id}/close`);
     return res.data;
+  },
+  adminDelete: async (id: string) => {
+    const res = await api.delete<{ message: string }>(`/admin/bookings/${id}`);
+    return res.data;
   }
 };
 

@@ -59,7 +59,7 @@ export default function UserDashboardPage() {
 
     // Calculate total
     const diff = new Date(activeBooking.toDate).getTime() - new Date(activeBooking.fromDate).getTime();
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    const days = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
     const subtotal = activeBooking.car.pricePerDay * days;
     const total = subtotal + Math.round(subtotal * 0.1);
 
@@ -186,7 +186,7 @@ export default function UserDashboardPage() {
       ------------------------------------------------
       TRIP LOGS:
       Pickup Location: ${booking.pickupLocation}
-      Lease Duration: ${new Date(booking.fromDate).toLocaleDateString()} to ${new Date(booking.toDate).toLocaleDateString()}
+      Lease Duration: ${new Date(booking.fromDate).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} to ${new Date(booking.toDate).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
       Destination: ${booking.destination}
       ------------------------------------------------
       PAYMENT LOG:
@@ -284,7 +284,7 @@ export default function UserDashboardPage() {
                     Pickup: {activeBooking.pickupLocation}
                   </p>
                   <p className="text-[10px] text-gray-500 font-medium mt-0.5">
-                    {new Date(activeBooking.fromDate).toLocaleDateString()} to {new Date(activeBooking.toDate).toLocaleDateString()}
+                    {new Date(activeBooking.fromDate).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} to {new Date(activeBooking.toDate).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                   </p>
                 </div>
 
@@ -437,7 +437,7 @@ export default function UserDashboardPage() {
                   <div>
                     <h4 className="font-bold text-white text-sm">{booking.car.name}</h4>
                     <p className="text-[10px] text-gray-400 mt-1 capitalize font-semibold">
-                      Lease: {new Date(booking.fromDate).toLocaleDateString()} – {new Date(booking.toDate).toLocaleDateString()}
+                      Lease: {new Date(booking.fromDate).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} – {new Date(booking.toDate).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                     </p>
                   </div>
                   <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded ${
