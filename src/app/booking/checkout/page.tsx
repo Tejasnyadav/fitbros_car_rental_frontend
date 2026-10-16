@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { carService, bookingService } from '../../../services/api';
 import { Car } from '../../../types';
+import { useLocalDateInputValue } from '../../../utils/date';
 import { Award, AlertTriangle, User, Calendar, MapPin, ClipboardList, PenTool, UploadCloud, ArrowRight, ArrowLeft, FileText, Eye } from 'lucide-react';
 
 const MAX_KYC_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -49,6 +50,7 @@ function CheckoutPageContent() {
   
   const [submitting, setSubmitting] = useState(false);
   const [warningMsg, setWarningMsg] = useState<string | null>(null);
+  const today = useLocalDateInputValue();
 
   useEffect(() => {
     if (!carId) {
@@ -365,7 +367,7 @@ function CheckoutPageContent() {
                 <input 
                   type="date"
                   value={fromDate}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={today || undefined}
                   onChange={(e) => setFromDate(e.target.value)}
                   required
                   className="w-full px-4 py-2.5 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 font-semibold"
@@ -388,7 +390,7 @@ function CheckoutPageContent() {
                 <input 
                   type="date"
                   value={toDate}
-                  min={fromDate || new Date().toISOString().split('T')[0]}
+                  min={fromDate || today || undefined}
                   onChange={(e) => setToDate(e.target.value)}
                   required
                   className="w-full px-4 py-2.5 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 font-semibold"
@@ -400,6 +402,7 @@ function CheckoutPageContent() {
                 <input
                   type="time"
                   value={returnTime}
+                  min={fromDate === toDate ? pickupTime : undefined}
                   onChange={(e) => setReturnTime(e.target.value)}
                   required
                   className="w-full px-4 py-2.5 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 font-semibold"

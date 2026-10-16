@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { carService } from '../services/api';
 import { Car } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useLocalDateInputValue } from '../utils/date';
 import { Calendar, Search, SlidersHorizontal, Users, Fuel, Settings, Check, HelpCircle, AlertTriangle } from 'lucide-react';
 
 export default function LandingPage() {
@@ -24,6 +25,7 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [warningMsg, setWarningMsg] = useState<string | null>(null);
+  const today = useLocalDateInputValue();
 
   const getRentalPeriod = () => ({
     start: new Date(`${fromDate}T${pickupTime}:00`),
@@ -147,7 +149,7 @@ export default function LandingPage() {
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
+                min={today || undefined}
                 className="w-full px-4 py-3 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 transition-all font-semibold"
               />
             </div>
@@ -173,6 +175,7 @@ export default function LandingPage() {
               <input
                 type="time"
                 value={returnTime}
+                min={fromDate === toDate ? pickupTime : undefined}
                 onChange={(e) => setReturnTime(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 transition-all font-semibold"
               />
@@ -187,7 +190,7 @@ export default function LandingPage() {
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                min={fromDate || new Date().toISOString().split('T')[0]}
+                min={fromDate || today || undefined}
                 className="w-full px-4 py-3 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 transition-all font-semibold"
               />
             </div>
