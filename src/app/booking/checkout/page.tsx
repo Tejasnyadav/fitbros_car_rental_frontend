@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { carService, bookingService } from '../../../services/api';
 import { Car } from '../../../types';
-import { useLocalDateInputValue } from '../../../utils/date';
+import { combineLocalDateTime, useLocalDateInputValue } from '../../../utils/date';
 import { Award, AlertTriangle, User, Calendar, MapPin, ClipboardList, PenTool, UploadCloud, ArrowRight, ArrowLeft, FileText, Eye } from 'lucide-react';
 
 const MAX_KYC_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -50,14 +51,11 @@ function CheckoutPageContent() {
   
   const [submitting, setSubmitting] = useState(false);
   const [warningMsg, setWarningMsg] = useState<string | null>(null);
+  const [bookingError, setBookingError] = useState<string | null>(null);
   const today = useLocalDateInputValue();
 
   useEffect(() => {
-    if (!carId) {
-      setError('Invalid checkout session. No car selected.');
-      setLoadingCar(false);
-      return;
-    }
+    if (!carId) return;
 
     const fetchCar = async () => {
       try {
@@ -213,8 +211,8 @@ function CheckoutPageContent() {
 
   // Cost calculations
   const getRentalPeriod = () => ({
-    start: new Date(`${fromDate}T${pickupTime}:00`),
-    end: new Date(`${toDate}T${returnTime}:00`)
+    start: combineLocalDateTime(fromDate, pickupTime),
+    end: combineLocalDateTime(toDate, returnTime)
   });
 
   const calculateDays = () => {
@@ -267,12 +265,20 @@ function CheckoutPageContent() {
     }
 
     setSubmitting(true);
-    setError(null);
+    setBookingError(null);
+
+    const { start, end } = getRentalPeriod();
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start <= new Date() || end <= start) {
+      setBookingError('Please review the pickup and return date/time. Pickup must be in the future and return must be later than pickup.');
+      setStep(1);
+      setSubmitting(false);
+      return;
+    }
 
     const payload = {
       carId,
-      fromDate: getRentalPeriod().start.toISOString(),
-      toDate: getRentalPeriod().end.toISOString(),
+      fromDate: start.toISOString(),
+      toDate: end.toISOString(),
       destination,
       purpose,
       members,
@@ -286,13 +292,45 @@ function CheckoutPageContent() {
     };
 
     try {
+      const availableCars = await carService.searchCars({
+        fromDate: start.toISOString(),
+        toDate: end.toISOString()
+      });
+      if (!availableCars.some(availableCar => availableCar.id === carId && availableCar.isAvailable !== false)) {
+        setBookingError('This car is no longer available for the selected time. Please change your dates or choose another car.');
+        setStep(1);
+        setSubmitting(false);
+        return;
+      }
+
       await bookingService.create(payload);
       router.push('/dashboard'); // Go to tracking screen
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to submit booking request. Overlap date check failed.');
+    } catch (err: unknown) {
+      const message = typeof err === 'object' && err !== null && 'response' in err
+        ? (err.response as { data?: { message?: string } } | undefined)?.data?.message
+        : undefined;
+      setBookingError(message || 'Failed to submit booking request. Please retry or contact support if the problem continues.');
+      if (typeof err === 'object' && err !== null && 'response' in err && err.response && typeof err.response === 'object' && 'status' in err.response && err.response.status === 409) {
+        setStep(1);
+      }
       setSubmitting(false);
     }
   };
+
+  if (!carId) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[#0A0A0A] px-6">
+        <div className="max-w-md w-full glass-panel rounded-2xl p-8 border border-red-500/10 text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="font-bold text-white text-base">Checkout Error</h3>
+          <p className="text-xs text-gray-500 mt-2 leading-relaxed">Invalid checkout session. No car selected.</p>
+          <Link href="/" className="inline-block mt-6 px-6 py-2.5 bg-white text-black font-bold text-xs rounded-xl hover:bg-yellow-400">
+            Back to Fleet
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (loadingCar) {
     return (
@@ -309,9 +347,9 @@ function CheckoutPageContent() {
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h3 className="font-bold text-white text-base">Checkout Error</h3>
           <p className="text-xs text-gray-500 mt-2 leading-relaxed">{error || 'An unexpected error occurred.'}</p>
-          <a href="/" className="inline-block mt-6 px-6 py-2.5 bg-white text-black font-bold text-xs rounded-xl hover:bg-yellow-400">
+          <Link href="/" className="inline-block mt-6 px-6 py-2.5 bg-white text-black font-bold text-xs rounded-xl hover:bg-yellow-400">
             Back to Fleet
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -322,6 +360,12 @@ function CheckoutPageContent() {
       
       {/* Checkout Steps Panel (Wizard) */}
       <div className="lg:col-span-2 flex flex-col gap-6 sm:gap-8">
+
+        {bookingError && (
+          <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+            {bookingError}
+          </div>
+        )}
         
         {/* Wizard progress tracker */}
         <div className="glass-panel rounded-2xl p-4 sm:p-6 flex justify-between items-center relative overflow-hidden">
@@ -368,7 +412,10 @@ function CheckoutPageContent() {
                   type="date"
                   value={fromDate}
                   min={today || undefined}
-                  onChange={(e) => setFromDate(e.target.value)}
+                  onChange={(e) => {
+                    setFromDate(e.target.value);
+                    setBookingError(null);
+                  }}
                   required
                   className="w-full px-4 py-2.5 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 font-semibold"
                 />
@@ -379,7 +426,10 @@ function CheckoutPageContent() {
                 <input
                   type="time"
                   value={pickupTime}
-                  onChange={(e) => setPickupTime(e.target.value)}
+                  onChange={(e) => {
+                    setPickupTime(e.target.value);
+                    setBookingError(null);
+                  }}
                   required
                   className="w-full px-4 py-2.5 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 font-semibold"
                 />
@@ -391,7 +441,10 @@ function CheckoutPageContent() {
                   type="date"
                   value={toDate}
                   min={fromDate || today || undefined}
-                  onChange={(e) => setToDate(e.target.value)}
+                  onChange={(e) => {
+                    setToDate(e.target.value);
+                    setBookingError(null);
+                  }}
                   required
                   className="w-full px-4 py-2.5 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 font-semibold"
                 />
@@ -403,7 +456,10 @@ function CheckoutPageContent() {
                   type="time"
                   value={returnTime}
                   min={fromDate === toDate ? pickupTime : undefined}
-                  onChange={(e) => setReturnTime(e.target.value)}
+                  onChange={(e) => {
+                    setReturnTime(e.target.value);
+                    setBookingError(null);
+                  }}
                   required
                   className="w-full px-4 py-2.5 rounded-xl bg-[#171717] border border-white/5 text-sm text-white focus:outline-none focus:border-yellow-400 font-semibold"
                 />

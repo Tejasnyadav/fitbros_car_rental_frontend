@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { carService } from '../services/api';
 import { Car } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { useLocalDateInputValue } from '../utils/date';
+import { combineLocalDateTime, useLocalDateInputValue } from '../utils/date';
 import { Calendar, Search, SlidersHorizontal, Users, Fuel, Settings, Check, HelpCircle, AlertTriangle } from 'lucide-react';
 
 export default function LandingPage() {
@@ -25,48 +25,99 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [warningMsg, setWarningMsg] = useState<string | null>(null);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [availabilitySearchKey, setAvailabilitySearchKey] = useState<string | null>(null);
   const today = useLocalDateInputValue();
+  const searchRequestId = useRef(0);
+  const currentSearchKey = JSON.stringify([fromDate, toDate, pickupTime, returnTime, selectedTypes, transmission]);
 
   const getRentalPeriod = () => ({
-    start: new Date(`${fromDate}T${pickupTime}:00`),
-    end: new Date(`${toDate}T${returnTime}:00`)
+    start: combineLocalDateTime(fromDate, pickupTime),
+    end: combineLocalDateTime(toDate, returnTime)
   });
 
-  const fetchCars = async () => {
+  const fetchCars = useCallback(async () => {
+    const requestId = ++searchRequestId.current;
     setLoading(true);
+    setAvailabilityError(null);
+    setAvailabilitySearchKey(null);
+
     try {
+      if ((fromDate || toDate) && (!fromDate || !toDate)) {
+        setCars([]);
+        setSearched(true);
+        setAvailabilityError('Select both pickup and return dates to check availability.');
+        return;
+      }
+
       const typeParam = selectedTypes.join(',');
-      const { start, end } = getRentalPeriod();
+      const period = fromDate && toDate
+        ? {
+          start: combineLocalDateTime(fromDate, pickupTime),
+          end: combineLocalDateTime(toDate, returnTime)
+        }
+        : null;
+
+      if (period && (!Number.isFinite(period.start.getTime()) || !Number.isFinite(period.end.getTime()) || period.end <= period.start)) {
+        setCars([]);
+        setSearched(true);
+        setAvailabilityError('Return date and time must be after pickup date and time.');
+        return;
+      }
+
+      if (period && period.start <= new Date()) {
+        setCars([]);
+        setSearched(true);
+        setAvailabilityError('Pickup date and time must be in the future.');
+        return;
+      }
+
       const params = {
-        ...(fromDate && toDate && {
-          fromDate: start.toISOString(),
-          toDate: end.toISOString()
+        ...(period && {
+          fromDate: period.start.toISOString(),
+          toDate: period.end.toISOString()
         }),
         ...(typeParam && { type: typeParam }),
         ...(transmission && { transmission })
       };
 
       const list = await carService.searchCars(params);
+      if (requestId !== searchRequestId.current) return;
       setCars(list);
       setSearched(true);
+      setAvailabilitySearchKey(currentSearchKey);
     } catch (err) {
       console.error('Failed to load fleet catalog', err);
+      if (requestId === searchRequestId.current) {
+        setCars([]);
+        setSearched(true);
+        setAvailabilityError('Unable to check availability right now. Please try again.');
+      }
     } finally {
-      setLoading(false);
+      if (requestId === searchRequestId.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, [fromDate, toDate, pickupTime, returnTime, selectedTypes, transmission, currentSearchKey]);
 
   useEffect(() => {
-    // Fetch fleet whenever categories or gearbox filters are toggled
-    fetchCars();
-  }, [selectedTypes, transmission]);
+    const timeout = window.setTimeout(() => {
+      void fetchCars();
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [fetchCars]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (fromDate && toDate) {
       const { start, end } = getRentalPeriod();
-      if (end <= start) {
+      if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) {
         setWarningMsg('Return date and time must be after pickup date and time.');
+        return;
+      }
+      if (start <= new Date()) {
+        setWarningMsg('Pickup date and time must be in the future.');
         return;
       }
     }
@@ -88,8 +139,16 @@ export default function LandingPage() {
     }
 
     const { start, end } = getRentalPeriod();
-    if (end <= start) {
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) {
       setWarningMsg('Return date and time must be after pickup date and time.');
+      return;
+    }
+    if (start <= new Date()) {
+      setWarningMsg('Pickup date and time must be in the future.');
+      return;
+    }
+    if (loading || availabilitySearchKey !== currentSearchKey || car.isAvailable === false) {
+      setWarningMsg('Please wait for availability to finish checking before selecting a vehicle.');
       return;
     }
 
@@ -263,7 +322,7 @@ export default function LandingPage() {
           </div>
           {fromDate && toDate && (
             <span className="text-[10px] sm:text-xs bg-yellow-400/10 text-yellow-400 border border-yellow-400/20 px-3 py-1.5 rounded-full font-bold self-start sm:self-auto">
-              Selected rental: {new Date(`${fromDate}T${pickupTime}:00`).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} – {new Date(`${toDate}T${returnTime}:00`).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+              Selected rental: {combineLocalDateTime(fromDate, pickupTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} – {combineLocalDateTime(toDate, returnTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
             </span>
           )}
         </div>
@@ -271,15 +330,16 @@ export default function LandingPage() {
         {cars.length === 0 ? (
           <div className="glass-panel rounded-2xl p-16 text-center border border-white/5">
             <HelpCircle className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-            <h3 className="font-bold text-white text-base">No Vehicles Found</h3>
+            <h3 className="font-bold text-white text-base">{availabilityError ? 'Availability Check' : 'No Vehicles Found'}</h3>
             <p className="text-xs text-gray-500 max-w-xs mx-auto mt-2 leading-relaxed">
-              No vehicles matched your search filter criteria. Try adjusting dates or filters to load other options.
+              {availabilityError || 'No vehicles matched your search filter criteria. Try adjusting dates or filters to load other options.'}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {cars.map((car) => {
-              const isBlocked = car.isAvailable === false;
+              const isUnavailable = car.isAvailable === false;
+              const isBlocked = isUnavailable || loading;
               return (
                 <div
                   key={car.id}
@@ -306,7 +366,7 @@ export default function LandingPage() {
                       </span>
                     </div>
 
-                    {isBlocked && (
+                    {isUnavailable && (
                       <div className="absolute inset-0 bg-[#0A0A0A]/90 backdrop-blur-[3px] flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
                         <span className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 mb-2">
                           <AlertTriangle className="w-5 h-5" />
@@ -359,7 +419,7 @@ export default function LandingPage() {
                             : 'bg-white hover:bg-yellow-400 text-black hover:scale-[1.01]'
                           }`}
                       >
-                        {isBlocked ? 'Unavailable' : 'Book Vehicle'}
+                        {loading ? 'Checking Availability...' : isUnavailable ? 'Unavailable' : 'Book Vehicle'}
                       </button>
                     </div>
 
