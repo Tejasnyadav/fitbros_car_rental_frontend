@@ -24,9 +24,11 @@ export default function UserDashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
-      const active = await bookingService.getActive();
+      const [active, history] = await Promise.all([
+        bookingService.getActive(),
+        bookingService.getHistory()
+      ]);
       setActiveBooking(active);
-      const history = await bookingService.getHistory();
       setBookingHistory(history);
     } catch (err) {
       console.error('Failed to load dashboard data', err);

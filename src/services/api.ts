@@ -36,6 +36,10 @@ export const authService = {
   getAdminProfile: async () => {
     const res = await api.get<{ user: User }>('/auth/admin-profile');
     return res.data.user;
+  },
+  getSessionProfile: async () => {
+    const res = await api.get<{ user: User | null; admin: User | null }>('/auth/session');
+    return res.data;
   }
 };
 

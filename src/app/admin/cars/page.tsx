@@ -171,7 +171,7 @@ export default function AdminFleetCrudPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {cars.map((car) => (
+          {cars.map((car, index) => (
             <div key={car.id} className="glass-panel rounded-2xl overflow-hidden flex flex-col group border border-white/5 hover:border-white/10 transition-all">
               
               {/* Image Frame */}
@@ -179,6 +179,9 @@ export default function AdminFleetCrudPage() {
                 <img 
                   src={car.image} 
                   alt={car.name}
+                  loading={index < 2 ? 'eager' : 'lazy'}
+                  fetchPriority={index < 2 ? 'high' : 'auto'}
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[600ms]"
                 />
                 

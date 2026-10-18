@@ -337,7 +337,7 @@ export default function LandingPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-            {cars.map((car) => {
+            {cars.map((car, index) => {
               const isUnavailable = car.isAvailable === false;
               const isBlocked = isUnavailable || loading;
               return (
@@ -356,6 +356,9 @@ export default function LandingPage() {
                     <img
                       src={car.image}
                       alt={car.name}
+                      loading={index < 2 ? 'eager' : 'lazy'}
+                      fetchPriority={index < 2 ? 'high' : 'auto'}
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[600ms]"
                     />
 

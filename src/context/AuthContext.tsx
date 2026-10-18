@@ -27,13 +27,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async () => {
     try {
-      const [userProfileRes, adminProfileRes] = await Promise.allSettled([
-        authService.getProfile(),
-        authService.getAdminProfile()
-      ]);
-      
-      setUser(userProfileRes.status === 'fulfilled' ? userProfileRes.value : null);
-      setAdmin(adminProfileRes.status === 'fulfilled' ? adminProfileRes.value : null);
+      const profiles = await authService.getSessionProfile();
+      setUser(profiles.user);
+      setAdmin(profiles.admin);
     } catch (err) {
       setUser(null);
       setAdmin(null);
