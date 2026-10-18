@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { isAxiosError } from 'axios';
 import { bookingService } from '../../../services/api';
 import { Booking, PaymentMethod } from '../../../types';
 import { useAuth } from '../../../context/AuthContext';
 import { getBookingInvoiceAmounts, printBookingInvoice } from '../../../utils/invoice';
-import { Calendar, Users, ClipboardCheck, Award, XSquare, Clock, MapPin, Eye, FileText, CheckCircle2, XCircle, X, Trash2, Download, Printer } from 'lucide-react';
+import { Calendar, Users, ClipboardCheck, Award, XSquare, Clock, MapPin, Eye, FileText, CheckCircle2, XCircle, X, Trash2, Download, Printer, Loader2 } from 'lucide-react';
 
 const formatBookingDateTime = (value: string) =>
   new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
@@ -15,6 +15,8 @@ export default function AdminBookingsPage() {
   const { admin, loading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [loadingBookingId, setLoadingBookingId] = useState<string | null>(null);
+  const bookingDetailsRequest = useRef(0);
   const [loading, setLoading] = useState(true);
 
   // Filters state
@@ -60,13 +62,23 @@ export default function AdminBookingsPage() {
   }, [dateFilter, statusFilter, startDate, endDate, authLoading, admin]);
 
   const handleRowClick = async (booking: Booking) => {
+    const requestId = ++bookingDetailsRequest.current;
+    setLoadingBookingId(booking.id);
+    setSelectedBooking(null);
     try {
       const details = await bookingService.getDetails(booking.id);
+      if (requestId !== bookingDetailsRequest.current) return;
       setSelectedBooking(details);
       setDiscountType(details.discountType || 'NONE');
       setDiscountValue(String(details.discountValue || 0));
     } catch (err) {
-      alert('Failed to query booking detailed information.');
+      if (requestId === bookingDetailsRequest.current) {
+        alert('Failed to query booking detailed information.');
+      }
+    } finally {
+      if (requestId === bookingDetailsRequest.current) {
+        setLoadingBookingId(null);
+      }
     }
   };
 
@@ -371,6 +383,7 @@ export default function AdminBookingsPage() {
                 <div
                   key={b.id}
                   onClick={() => handleRowClick(b)}
+                  aria-busy={loadingBookingId === b.id}
                   className={`glass-panel rounded-2xl p-5 border transition-all cursor-pointer flex flex-col gap-3.5 relative overflow-hidden ${
                     selectedBooking?.id === b.id 
                       ? 'border-yellow-400/50 bg-[#171717]/80 shadow-md shadow-yellow-400/5' 
@@ -379,9 +392,16 @@ export default function AdminBookingsPage() {
                 >
                   <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
                     <span className="font-luxury font-bold text-white text-xs">#{b.id.substring(18)}</span>
-                    <span className={`text-[8px] uppercase font-extrabold border px-2 py-0.5 rounded-full ${getStatusStyle(b.status)}`}>
-                      {b.status.replace(/_/g, ' ')}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {loadingBookingId === b.id && (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-yellow-400" role="status">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Loading
+                        </span>
+                      )}
+                      <span className={`text-[8px] uppercase font-extrabold border px-2 py-0.5 rounded-full ${getStatusStyle(b.status)}`}>
+                        {b.status.replace(/_/g, ' ')}
+                      </span>
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-[11px] font-semibold text-gray-400">
@@ -435,11 +455,21 @@ export default function AdminBookingsPage() {
                       <tr 
                         key={b.id} 
                         onClick={() => handleRowClick(b)}
+                        aria-busy={loadingBookingId === b.id}
                         className={`hover:bg-white/5 cursor-pointer transition-colors ${
                           selectedBooking?.id === b.id ? 'bg-white/5 border-l-2 border-yellow-400' : ''
                         }`}
                       >
-                        <td className="p-4 font-bold text-white">#{b.id.substring(18)}</td>
+                        <td className="p-4 font-bold text-white">
+                          <span className="inline-flex items-center gap-2">
+                            #{b.id.substring(18)}
+                            {loadingBookingId === b.id && (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-yellow-400" role="status">
+                                <Loader2 className="h-3 w-3 animate-spin" /> Loading
+                              </span>
+                            )}
+                          </span>
+                        </td>
                         <td className="p-4 font-semibold">{b.user?.name}</td>
                         <td className="p-4">{b.car?.name}</td>
                         <td className="p-4 font-medium">{formatBookingDateTime(b.fromDate)}</td>
@@ -460,7 +490,12 @@ export default function AdminBookingsPage() {
 
         {/* Selected Booking Details Sidepanel Drawer */}
         <div className="flex flex-col gap-6">
-          {selectedBooking ? (
+          {loadingBookingId ? (
+            <div className="glass-panel rounded-2xl p-10 border border-white/5 flex flex-col items-center justify-center gap-3 text-center min-h-48" role="status">
+              <Loader2 className="h-6 w-6 animate-spin text-yellow-400" />
+              <span className="text-xs font-semibold text-gray-300">Loading booking details...</span>
+            </div>
+          ) : selectedBooking ? (
             <div className="glass-panel rounded-2xl p-6 border border-white/5 flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-200">
               
               <div className="flex justify-between items-center border-b border-white/5 pb-3">
