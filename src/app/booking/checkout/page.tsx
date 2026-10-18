@@ -8,7 +8,43 @@ import { Car } from '../../../types';
 import { combineLocalDateTime, useLocalDateInputValue } from '../../../utils/date';
 import { Award, AlertTriangle, User, Calendar, MapPin, ClipboardList, PenTool, UploadCloud, ArrowRight, ArrowLeft, FileText, Eye } from 'lucide-react';
 
-const MAX_KYC_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_KYC_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+
+const compressKycImage = async (file: File): Promise<Blob> => {
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const image = new Image();
+    image.src = objectUrl;
+    await image.decode();
+
+    let scale = Math.min(1, 1920 / image.naturalWidth, 1920 / image.naturalHeight);
+    let blob: Blob | null = null;
+
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext('2d');
+      if (!context) {
+        throw new Error('Image compression is not available in this browser.');
+      }
+
+      context.fillStyle = '#fff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.82 - attempt * 0.08));
+      if (blob && blob.size <= MAX_KYC_FILE_SIZE_BYTES) {
+        return blob;
+      }
+      scale *= 0.8;
+    }
+
+    throw new Error(blob ? 'Image is too large after compression.' : 'Unable to compress this image.');
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+};
 
 function CheckoutPageContent() {
   const router = useRouter();
@@ -183,30 +219,44 @@ function CheckoutPageContent() {
   };
 
   // Convert File uploads to base64 string helper
-  const handleFileRead = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string | null) => void) => {
-    const file = e.target.files?.[0];
+  const handleFileRead = async (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string | null) => void) => {
+    const input = e.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
 
-    // Validate type
     const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
     if (!validTypes.includes(file.type)) {
       setWarningMsg('Invalid file format. Please upload a PDF, JPG, or PNG.');
-      e.target.value = '';
+      input.value = '';
       return;
     }
 
-    if (file.size > MAX_KYC_FILE_SIZE_BYTES) {
-      setWarningMsg('File is too large. Please upload files no larger than 10MB.');
-      e.target.value = '';
+    if (file.type === 'application/pdf' && file.size > MAX_KYC_FILE_SIZE_BYTES) {
+      setWarningMsg('PDFs must be 2 MB or smaller. Images will be compressed automatically.');
+      input.value = '';
       return;
     }
 
-    // Read base64
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      setter(reader.result as string);
-    };
+    try {
+      const uploadFile = file.type.startsWith('image/') ? await compressKycImage(file) : file;
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            resolve(reader.result);
+          } else {
+            reject(new Error('The selected file could not be read.'));
+          }
+        };
+        reader.onerror = () => reject(reader.error || new Error('The selected file could not be read.'));
+        reader.readAsDataURL(uploadFile);
+      });
+      setter(dataUrl);
+    } catch (readError) {
+      console.error('KYC file preparation failed:', readError);
+      setWarningMsg(readError instanceof Error ? readError.message : 'Unable to prepare this file. Please try another.');
+      input.value = '';
+    }
   };
 
   // Cost calculations
