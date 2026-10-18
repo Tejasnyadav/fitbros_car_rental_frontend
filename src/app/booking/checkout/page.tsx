@@ -16,7 +16,11 @@ const compressKycImage = async (file: File): Promise<Blob> => {
   try {
     const image = new Image();
     image.src = objectUrl;
-    await image.decode();
+    try {
+      await image.decode();
+    } catch {
+      throw new Error('This photo format is not supported by your browser. Please choose a JPG or PNG photo.');
+    }
 
     let scale = Math.min(1, 1920 / image.naturalWidth, 1920 / image.naturalHeight);
     let blob: Blob | null = null;
@@ -224,21 +228,22 @@ function CheckoutPageContent() {
     const file = input.files?.[0];
     if (!file) return;
 
-    const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-    if (!validTypes.includes(file.type)) {
-      setWarningMsg('Invalid file format. Please upload a PDF, JPG, or PNG.');
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|webp|heic|heif|avif)$/i.test(file.name);
+    if (!isPdf && !isImage) {
+      setWarningMsg('Unsupported file. Please choose a PDF or photo.');
       input.value = '';
       return;
     }
 
-    if (file.type === 'application/pdf' && file.size > MAX_KYC_FILE_SIZE_BYTES) {
+    if (isPdf && file.size > MAX_KYC_FILE_SIZE_BYTES) {
       setWarningMsg('PDFs must be 2 MB or smaller. Images will be compressed automatically.');
       input.value = '';
       return;
     }
 
     try {
-      const uploadFile = file.type.startsWith('image/') ? await compressKycImage(file) : file;
+      const uploadFile = isImage ? await compressKycImage(file) : file;
       const reader = new FileReader();
       const dataUrl = await new Promise<string>((resolve, reject) => {
         reader.onload = () => {
@@ -666,7 +671,7 @@ function CheckoutPageContent() {
             </h3>
 
             <p className="text-xs text-gray-400 leading-relaxed font-medium">
-              Please upload clear documents in PDF, JPG, or PNG format. Ensure the image is legible for admin review.
+              Upload a PDF or a clear photo of each document. Photos are automatically resized for upload.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -676,13 +681,13 @@ function CheckoutPageContent() {
                 <div className="relative rounded-xl border border-dashed border-white/10 hover:border-yellow-400/50 bg-[#171717]/50 p-4 transition-all flex flex-col items-center justify-center min-h-32 text-center cursor-pointer">
                   <input 
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept="application/pdf,image/*"
                     onChange={(e) => handleFileRead(e, setLicense)}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                   <UploadCloud className="w-8 h-8 text-gray-500 mb-2" />
                   <span className="text-[10px] text-gray-400 font-bold">
-                    {license ? '✅ License Captured' : 'Select PDF / JPG / PNG'}
+                    {license ? '✅ License Captured' : 'Select PDF or Photo'}
                   </span>
                 </div>
               </div>
@@ -693,13 +698,13 @@ function CheckoutPageContent() {
                 <div className="relative rounded-xl border border-dashed border-white/10 hover:border-yellow-400/50 bg-[#171717]/50 p-4 transition-all flex flex-col items-center justify-center min-h-32 text-center cursor-pointer">
                   <input 
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept="application/pdf,image/*"
                     onChange={(e) => handleFileRead(e, setAadhaar)}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                   <UploadCloud className="w-8 h-8 text-gray-500 mb-2" />
                   <span className="text-[10px] text-gray-400 font-bold">
-                    {aadhaar ? '✅ Aadhaar Captured' : 'Select PDF / JPG / PNG'}
+                    {aadhaar ? '✅ Aadhaar Captured' : 'Select PDF or Photo'}
                   </span>
                 </div>
               </div>
@@ -710,13 +715,13 @@ function CheckoutPageContent() {
                 <div className="relative rounded-xl border border-dashed border-white/10 hover:border-yellow-400/50 bg-[#171717]/50 p-4 transition-all flex flex-col items-center justify-center min-h-32 text-center cursor-pointer">
                   <input 
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept="application/pdf,image/*"
                     onChange={(e) => handleFileRead(e, setPan)}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                   <UploadCloud className="w-8 h-8 text-gray-500 mb-2" />
                   <span className="text-[10px] text-gray-400 font-bold">
-                    {pan ? '✅ PAN Card Captured' : 'Select PDF / JPG / PNG'}
+                    {pan ? '✅ PAN Card Captured' : 'Select PDF or Photo'}
                   </span>
                 </div>
               </div>
@@ -727,13 +732,13 @@ function CheckoutPageContent() {
                 <div className="relative rounded-xl border border-dashed border-white/10 hover:border-yellow-400/50 bg-[#171717]/50 p-4 transition-all flex flex-col items-center justify-center min-h-32 text-center cursor-pointer">
                   <input 
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept="application/pdf,image/*"
                     onChange={(e) => handleFileRead(e, setSelfie)}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                   <UploadCloud className="w-8 h-8 text-gray-500 mb-2" />
                   <span className="text-[10px] text-gray-400 font-bold">
-                    {selfie ? '✅ Selfie Captured' : 'Select PDF / JPG / PNG'}
+                    {selfie ? '✅ Selfie Captured' : 'Select PDF or Photo'}
                   </span>
                 </div>
               </div>
