@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { isAxiosError } from 'axios';
 import { carService } from '../../../services/api';
 import { Car } from '../../../types';
 import { Car as CarIcon, Plus, Pencil, Trash2, X, Settings, Users, Fuel, AlertTriangle } from 'lucide-react';
@@ -17,8 +18,11 @@ export default function AdminFleetCrudPage() {
 
   // Form Fields
   const [name, setName] = useState('');
-  const [type, setType] = useState('Sedan');
-  const [transmission, setTransmission] = useState('Automatic');
+  const [type, setType] = useState<Car['type']>('Sedan');
+  const [transmission, setTransmission] = useState<Car['transmission']>('Automatic');
+  const [fuelType, setFuelType] = useState<'Petrol' | 'Diesel'>('Petrol');
+  const [seatingCapacity, setSeatingCapacity] = useState('5');
+  const [displayOrder, setDisplayOrder] = useState('0');
   const [pricePerDay, setPricePerDay] = useState('');
   const [image, setImage] = useState('');
   const [status, setStatus] = useState<'AVAILABLE' | 'MAINTENANCE'>('AVAILABLE');
@@ -49,6 +53,9 @@ export default function AdminFleetCrudPage() {
     setName('');
     setType('Sedan');
     setTransmission('Automatic');
+    setFuelType('Petrol');
+    setSeatingCapacity('5');
+    setDisplayOrder(String(cars.length + 1));
     setPricePerDay('');
     setImage('');
     setStatus('AVAILABLE');
@@ -61,6 +68,9 @@ export default function AdminFleetCrudPage() {
     setName(car.name);
     setType(car.type);
     setTransmission(car.transmission);
+    setFuelType(car.fuelType || 'Petrol');
+    setSeatingCapacity(String(car.seatingCapacity || 5));
+    setDisplayOrder(String(car.displayOrder ?? 0));
     setPricePerDay(car.pricePerDay.toString());
     setImage(car.image);
     setStatus(car.status);
@@ -74,15 +84,16 @@ export default function AdminFleetCrudPage() {
       await carService.adminDelete(id);
       alert('Vehicle successfully deleted.');
       fetchCars();
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to delete vehicle. It may be locked in an active booking.');
+    } catch (err: unknown) {
+      const message = isAxiosError<{ message?: string }>(err) ? err.response?.data?.message : undefined;
+      alert(message || 'Failed to delete vehicle. It may be locked in an active booking.');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !pricePerDay || !image) {
-      setFormError('Name, price per day, and image URL are required.');
+    if (!name || !pricePerDay || !image || !Number.isInteger(Number(seatingCapacity)) || Number(seatingCapacity) < 1 || !Number.isInteger(Number(displayOrder)) || Number(displayOrder) < 0) {
+      setFormError('Enter a name, positive price, image URL, whole-number seat capacity, and valid display order.');
       return;
     }
 
@@ -91,8 +102,11 @@ export default function AdminFleetCrudPage() {
 
     const payload = {
       name,
-      type: type as any,
-      transmission: transmission as any,
+      type,
+      transmission,
+      fuelType,
+      seatingCapacity: Number(seatingCapacity),
+      displayOrder: Number(displayOrder),
       pricePerDay: parseFloat(pricePerDay),
       image,
       status
@@ -108,8 +122,9 @@ export default function AdminFleetCrudPage() {
       }
       setIsModalOpen(false);
       fetchCars();
-    } catch (err: any) {
-      setFormError(err.response?.data?.message || 'Failed to submit form.');
+    } catch (err: unknown) {
+      const message = isAxiosError<{ message?: string }>(err) ? err.response?.data?.message : undefined;
+      setFormError(message || 'Failed to submit form.');
     } finally {
       setSubmitting(false);
     }
@@ -136,7 +151,7 @@ export default function AdminFleetCrudPage() {
           <h2 className="font-luxury font-bold text-xl text-white tracking-wide flex items-center gap-2">
             <CarIcon className="w-5 h-5 text-yellow-400" /> Active Fleet Repository
           </h2>
-          <p className="text-xs text-gray-400 mt-1 font-medium">Add, modify, and manage car specifications and pricing</p>
+          <p className="text-xs text-gray-400 mt-1 font-medium">Manage vehicle specifications, pricing, and the order customers see cars</p>
         </div>
         
         <button
@@ -204,12 +219,13 @@ export default function AdminFleetCrudPage() {
                       <Settings className="w-3.5 h-3.5 text-yellow-400/80" /> {car.transmission}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Fuel className="w-3.5 h-3.5 text-yellow-400/80" /> Petrol/Diesel
+                      <Fuel className="w-3.5 h-3.5 text-yellow-400/80" /> {car.fuelType || 'Petrol'}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5 text-yellow-400/80" /> 5 Seats
+                      <Users className="w-3.5 h-3.5 text-yellow-400/80" /> {car.seatingCapacity || 5} Seats
                     </span>
                   </div>
+                  <p className="text-[9px] text-gray-500 mt-2">Website display position: {car.displayOrder ?? 0} (lower numbers appear first)</p>
                 </div>
 
                 {/* Operations CRUD actions */}
@@ -279,7 +295,7 @@ export default function AdminFleetCrudPage() {
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Category Type</label>
                   <select
                     value={type}
-                    onChange={(e) => setType(e.target.value)}
+                    onChange={(e) => setType(e.target.value as Car['type'])}
                     className="px-4 py-2.5 rounded-xl bg-[#0A0A0A] border border-white/5 text-xs text-white focus:outline-none focus:border-yellow-400 font-semibold cursor-pointer"
                   >
                     <option value="Hatchback">Hatchback</option>
@@ -293,13 +309,53 @@ export default function AdminFleetCrudPage() {
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Gearbox Transmission</label>
                   <select
                     value={transmission}
-                    onChange={(e) => setTransmission(e.target.value)}
+                    onChange={(e) => setTransmission(e.target.value as Car['transmission'])}
                     className="px-4 py-2.5 rounded-xl bg-[#0A0A0A] border border-white/5 text-xs text-white focus:outline-none focus:border-yellow-400 font-semibold cursor-pointer"
                   >
                     <option value="Manual">Manual</option>
                     <option value="Automatic">Automatic</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Fuel Type</label>
+                  <select
+                    value={fuelType}
+                    onChange={(e) => setFuelType(e.target.value as 'Petrol' | 'Diesel')}
+                    className="px-4 py-2.5 rounded-xl bg-[#0A0A0A] border border-white/5 text-xs text-white focus:outline-none focus:border-yellow-400 font-semibold cursor-pointer"
+                  >
+                    <option value="Petrol">Petrol</option>
+                    <option value="Diesel">Diesel</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Seating Capacity</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    step={1}
+                    value={seatingCapacity}
+                    onChange={(e) => setSeatingCapacity(e.target.value)}
+                    className="px-4 py-2.5 rounded-xl bg-[#0A0A0A] border border-white/5 text-xs text-white focus:outline-none focus:border-yellow-400 font-semibold"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Website Display Position (lower number appears first)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={displayOrder}
+                  onChange={(e) => setDisplayOrder(e.target.value)}
+                  className="px-4 py-2.5 rounded-xl bg-[#0A0A0A] border border-white/5 text-xs text-white focus:outline-none focus:border-yellow-400 font-semibold"
+                  required
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -320,7 +376,7 @@ export default function AdminFleetCrudPage() {
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Operational Status</label>
                   <select
                     value={status}
-                    onChange={(e: any) => setStatus(e.target.value)}
+                    onChange={(e) => setStatus(e.target.value as 'AVAILABLE' | 'MAINTENANCE')}
                     className="px-4 py-2.5 rounded-xl bg-[#0A0A0A] border border-white/5 text-xs text-white focus:outline-none focus:border-yellow-400 font-semibold cursor-pointer"
                   >
                     <option value="AVAILABLE">AVAILABLE (Operational)</option>

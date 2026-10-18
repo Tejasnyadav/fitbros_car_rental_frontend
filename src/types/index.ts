@@ -13,6 +13,9 @@ export interface Car {
   name: string;
   type: 'Hatchback' | 'Sedan' | 'SUV' | 'Luxury';
   transmission: 'Manual' | 'Automatic';
+  fuelType?: 'Petrol' | 'Diesel' | null;
+  seatingCapacity?: number | null;
+  displayOrder?: number | null;
   pricePerDay: number;
   image: string;
   status: 'AVAILABLE' | 'MAINTENANCE';
@@ -45,6 +48,9 @@ export interface Booking {
   purpose: string;
   members: number;
   pickupLocation: string;
+  discountType?: 'NONE' | 'FIXED' | 'PERCENTAGE' | null;
+  discountValue?: number | null;
+  discountAmount?: number | null;
   status: BookingStatus;
   documents?: Document;
   agreement?: Agreement;
@@ -85,6 +91,13 @@ export interface Invoice {
   id: string;
   bookingId: string;
   invoiceNumber: string;
+  subtotal?: number | null;
+  discountAmount?: number | null;
+  taxAmount?: number | null;
+  totalAmount?: number | null;
+  dailyRate?: number | null;
+  rentalDays?: number | null;
+  issuedAt?: string | null;
 }
 
 export interface Notification {

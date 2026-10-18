@@ -115,6 +115,14 @@ export const bookingService = {
     const res = await api.post<{ message: string; booking: Booking }>(`/admin/bookings/${id}/reject`);
     return res.data;
   },
+  adminSetDiscount: async (id: string, data: { discountType: 'NONE' | 'FIXED' | 'PERCENTAGE'; discountValue: number }) => {
+    const res = await api.put<{ message: string; booking: Booking; amounts: { subtotal: number; discountAmount: number; taxAmount: number; totalAmount: number } }>(`/admin/bookings/${id}/discount`, data);
+    return res.data;
+  },
+  adminExportInvoices: async (month: string) => {
+    const res = await api.get<Blob>('/admin/invoices/export', { params: { month }, responseType: 'blob' });
+    return res.data;
+  },
   adminConfirmCash: async (id: string) => {
     const res = await api.post<{ message: string; booking: Booking }>(`/admin/bookings/${id}/confirm-cash`);
     return res.data;

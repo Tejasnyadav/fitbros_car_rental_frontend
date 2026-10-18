@@ -398,10 +398,10 @@ export default function LandingPage() {
                           <Settings className="w-3.5 h-3.5 text-yellow-400/80" /> {car.transmission}
                         </span>
                         <span className="flex items-center gap-1.5">
-                          <Fuel className="w-3.5 h-3.5 text-yellow-400/80" /> Hybrid/Electric
+                          <Fuel className="w-3.5 h-3.5 text-yellow-400/80" /> {car.fuelType || 'Petrol'}
                         </span>
                         <span className="flex items-center gap-1.5">
-                          <Users className="w-3.5 h-3.5 text-yellow-400/80" /> 5 Seats
+                          <Users className="w-3.5 h-3.5 text-yellow-400/80" /> {car.seatingCapacity || 5} Seats
                         </span>
                       </div>
                     </div>

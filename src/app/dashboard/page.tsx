@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { bookingService } from '../../services/api';
 import { Booking, Notification } from '../../types';
+import { printBookingInvoice } from '../../utils/invoice';
 import { Award, AlertTriangle, CreditCard, QrCode, FileText, CheckCircle2, ChevronRight, HelpCircle, Users } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
@@ -61,7 +62,8 @@ export default function UserDashboardPage() {
     const diff = new Date(activeBooking.toDate).getTime() - new Date(activeBooking.fromDate).getTime();
     const days = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
     const subtotal = activeBooking.car.pricePerDay * days;
-    const total = subtotal + Math.round(subtotal * 0.1);
+    const discountAmount = activeBooking.discountAmount || 0;
+    const total = subtotal - discountAmount + Math.round((subtotal - discountAmount) * 0.05);
 
     if (paymentMethod === 'Cash') {
       try {
@@ -166,44 +168,21 @@ export default function UserDashboardPage() {
     return steps;
   };
 
+  const rentalSubtotal = activeBooking
+    ? activeBooking.car.pricePerDay * Math.max(1, Math.ceil((new Date(activeBooking.toDate).getTime() - new Date(activeBooking.fromDate).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+  const rentalDiscount = activeBooking?.discountAmount || 0;
+  const rentalTax = Math.round((rentalSubtotal - rentalDiscount) * 0.05);
+  const rentalTotal = rentalSubtotal - rentalDiscount + rentalTax;
+
   const downloadReceiptMock = (booking: Booking) => {
     if (!booking.invoice) {
-      alert('Invoice generating... Check status panel.');
+      alert('An invoice is available after payment has been completed.');
       return;
     }
-    // Simple window print layout simulation or file download alert
-    const printContent = `
-      ================================================
-      FITBROS CAR RENTAL - OFFICIAL RECEIPT & INVOICE
-      ================================================
-      Invoice Number: ${booking.invoice.invoiceNumber}
-      Booking ID: ${booking.id}
-      Customer Reference: ${booking.userId}
-      ------------------------------------------------
-      VEHICLE DETAILS:
-      Car Model: ${booking.car.name} (${booking.car.type})
-      Transmission: ${booking.car.transmission}
-      ------------------------------------------------
-      TRIP LOGS:
-      Pickup Location: ${booking.pickupLocation}
-      Lease Duration: ${new Date(booking.fromDate).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })} to ${new Date(booking.toDate).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-      Destination: ${booking.destination}
-      ------------------------------------------------
-      PAYMENT LOG:
-      Payment Method: ${booking.payment?.method || 'N/A'}
-      Payment Status: ${booking.payment?.status || 'N/A'}
-      Total Amount: INR ${booking.payment?.amount || 0}
-      ================================================
-      Thank you for riding with FitBros! Safe travels.
-    `;
-    
-    const blob = new Blob([printContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `FitBros_Invoice_${booking.invoice.invoiceNumber}.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
+    if (!printBookingInvoice(booking)) {
+      alert('Please allow pop-ups to print or save the invoice.');
+    }
   };
 
   if (authLoading || (user && loading)) {
@@ -311,6 +290,23 @@ export default function UserDashboardPage() {
               <p className="text-xs text-gray-400 mt-2 font-medium">
                 Admin approved your request. Choose a payment method below to activate the reservation.
               </p>
+
+              <div className="mt-5 rounded-xl border border-white/5 bg-[#0A0A0A] p-4 text-xs">
+                <div className="flex justify-between py-1.5 text-gray-400">
+                  <span>Rental subtotal</span><span>₹{rentalSubtotal.toFixed(2)}</span>
+                </div>
+                {rentalDiscount > 0 && (
+                  <div className="flex justify-between py-1.5 text-green-400">
+                    <span>Admin discount</span><span>-₹{rentalDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between py-1.5 text-gray-400">
+                  <span>Tax (5%)</span><span>₹{rentalTax.toFixed(2)}</span>
+                </div>
+                <div className="mt-2 flex justify-between border-t border-white/10 pt-3 font-bold text-white">
+                  <span>Total due</span><span className="text-yellow-400">₹{rentalTotal.toFixed(2)}</span>
+                </div>
+              </div>
 
               {paymentError && (
                 <div className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs">

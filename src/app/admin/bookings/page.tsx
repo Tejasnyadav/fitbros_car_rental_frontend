@@ -5,7 +5,8 @@ import { isAxiosError } from 'axios';
 import { bookingService } from '../../../services/api';
 import { Booking, PaymentMethod } from '../../../types';
 import { useAuth } from '../../../context/AuthContext';
-import { Calendar, Users, ClipboardCheck, Award, XSquare, Clock, MapPin, Eye, FileText, CheckCircle2, XCircle, X, Trash2 } from 'lucide-react';
+import { getBookingInvoiceAmounts, printBookingInvoice } from '../../../utils/invoice';
+import { Calendar, Users, ClipboardCheck, Award, XSquare, Clock, MapPin, Eye, FileText, CheckCircle2, XCircle, X, Trash2, Download, Printer } from 'lucide-react';
 
 const formatBookingDateTime = (value: string) =>
   new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
@@ -26,6 +27,14 @@ export default function AdminBookingsPage() {
   const [manualPaymentMethod, setManualPaymentMethod] = useState<PaymentMethod>('Cash');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState<string>('');
+  const [discountType, setDiscountType] = useState<'NONE' | 'FIXED' | 'PERCENTAGE'>('NONE');
+  const [discountValue, setDiscountValue] = useState('0');
+  const [invoiceMonth, setInvoiceMonth] = useState(() => {
+    const date = new Date();
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [exportingInvoices, setExportingInvoices] = useState(false);
+  const [showInvoice, setShowInvoice] = useState(false);
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -54,8 +63,58 @@ export default function AdminBookingsPage() {
     try {
       const details = await bookingService.getDetails(booking.id);
       setSelectedBooking(details);
+      setDiscountType(details.discountType || 'NONE');
+      setDiscountValue(String(details.discountValue || 0));
     } catch (err) {
       alert('Failed to query booking detailed information.');
+    }
+  };
+
+  const handleSaveDiscount = async () => {
+    if (!selectedBooking) return;
+    setProcessing(true);
+    try {
+      await bookingService.adminSetDiscount(selectedBooking.id, {
+        discountType,
+        discountValue: discountType === 'NONE' ? 0 : Number(discountValue)
+      });
+      const refreshed = await bookingService.getDetails(selectedBooking.id);
+      setSelectedBooking(refreshed);
+      setDiscountValue(String(refreshed.discountValue || 0));
+      await fetchBookings();
+      alert('Discount saved. It will be applied to the customer’s payment.');
+    } catch (err: unknown) {
+      const message = isAxiosError<{ message?: string }>(err) ? err.response?.data?.message : undefined;
+      alert(message || 'Failed to save booking discount.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleExportInvoices = async () => {
+    setExportingInvoices(true);
+    try {
+      const csv = await bookingService.adminExportInvoices(invoiceMonth);
+      const downloadUrl = URL.createObjectURL(csv);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `fitbros-invoices-${invoiceMonth}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(downloadUrl);
+    } catch (err: unknown) {
+      const message = isAxiosError<{ message?: string }>(err) ? err.response?.data?.message : undefined;
+      alert(message || 'Failed to export monthly invoices.');
+    } finally {
+      setExportingInvoices(false);
+    }
+  };
+
+  const handlePrintInvoice = () => {
+    if (!selectedBooking?.invoice) return;
+    if (!printBookingInvoice(selectedBooking)) {
+      alert('Please allow pop-ups to print or save the invoice.');
     }
   };
 
@@ -237,7 +296,7 @@ export default function AdminBookingsPage() {
         <div className="flex items-center gap-3">
           <select
             value={dateFilter}
-            onChange={(e: any) => setDateFilter(e.target.value)}
+            onChange={(e) => setDateFilter(e.target.value as typeof dateFilter)}
             className="px-3 py-1.5 rounded-lg bg-[#171717] border border-white/5 text-xs text-white focus:outline-none focus:border-yellow-400 font-semibold cursor-pointer"
           >
             <option value="All">All Dates</option>
@@ -266,6 +325,30 @@ export default function AdminBookingsPage() {
           )}
         </div>
 
+      </div>
+
+      <div className="glass-panel rounded-2xl p-4 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h3 className="text-xs font-bold text-white">Monthly invoice export</h3>
+          <p className="text-[10px] text-gray-500 mt-1">Download paid invoices issued in the selected month as a CSV for your auditor.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="month"
+            value={invoiceMonth}
+            onChange={(event) => setInvoiceMonth(event.target.value)}
+            className="rounded-lg border border-white/10 bg-[#171717] px-3 py-2 text-xs text-white"
+          />
+          <button
+            type="button"
+            onClick={handleExportInvoices}
+            disabled={exportingInvoices || !invoiceMonth}
+            className="inline-flex items-center gap-2 rounded-lg bg-yellow-400 px-4 py-2 text-[10px] font-extrabold uppercase tracking-wider text-black hover:bg-yellow-300 disabled:opacity-50"
+          >
+            <Download className="h-3.5 w-3.5" />
+            {exportingInvoices ? 'Preparing...' : 'Download CSV'}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
@@ -543,15 +626,72 @@ export default function AdminBookingsPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500 text-[10px]">Total Paid</span>
-                      <span className="text-yellow-400 text-[11px] font-bold">INR {selectedBooking.payment.amount}</span>
+                      <span className="text-yellow-400 text-[11px] font-bold">INR {selectedBooking.payment.amount.toFixed(2)}</span>
                     </div>
                     {selectedBooking.invoice && (
-                      <div className="flex justify-between border-t border-white/5 pt-2 mt-1">
-                        <span className="text-gray-500 text-[10px]">Invoice Number</span>
-                        <span className="text-white text-[10px] font-mono">#{selectedBooking.invoice.invoiceNumber}</span>
+                      <div className="flex flex-col gap-2 border-t border-white/5 pt-2 mt-1">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500 text-[10px]">Invoice Number</span>
+                          <span className="text-white text-[10px] font-mono">#{selectedBooking.invoice.invoiceNumber}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowInvoice(true)}
+                          className="w-full rounded-lg border border-yellow-400/20 bg-yellow-400/5 py-2 text-[10px] font-bold text-yellow-400 hover:bg-yellow-400/10"
+                        >
+                          View Invoice
+                        </button>
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {selectedBooking.status === 'PENDING_ADMIN_APPROVAL' && !selectedBooking.payment && (
+                <div className="flex flex-col gap-3 border-t border-white/5 pt-4">
+                  <div>
+                    <span className="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Customer Discount</span>
+                    <p className="mt-1 text-[10px] text-gray-500">Set a discount before approving the booking. Tax is calculated after discount.</p>
+                  </div>
+                  <select
+                    value={discountType}
+                    onChange={(event) => {
+                      const value = event.target.value as 'NONE' | 'FIXED' | 'PERCENTAGE';
+                      setDiscountType(value);
+                      if (value === 'NONE') setDiscountValue('0');
+                    }}
+                    disabled={processing}
+                    className="w-full rounded-lg border border-white/10 bg-[#171717] px-3 py-2 text-xs text-white"
+                  >
+                    <option value="NONE">No discount</option>
+                    <option value="FIXED">Fixed amount (INR)</option>
+                    <option value="PERCENTAGE">Percentage</option>
+                  </select>
+                  {discountType !== 'NONE' && (
+                    <input
+                      type="number"
+                      min={0}
+                      max={discountType === 'PERCENTAGE' ? 100 : undefined}
+                      step="0.01"
+                      value={discountValue}
+                      onChange={(event) => setDiscountValue(event.target.value)}
+                      disabled={processing}
+                      aria-label={discountType === 'PERCENTAGE' ? 'Discount percentage' : 'Fixed discount in INR'}
+                      placeholder={discountType === 'PERCENTAGE' ? 'Discount percent' : 'Discount in INR'}
+                      className="w-full rounded-lg border border-white/10 bg-[#171717] px-3 py-2 text-xs text-white"
+                    />
+                  )}
+                  {selectedBooking.discountAmount ? (
+                    <p className="text-[10px] text-green-400">Current discount: ₹{selectedBooking.discountAmount.toFixed(2)}</p>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={handleSaveDiscount}
+                    disabled={processing || (discountType !== 'NONE' && (!discountValue || Number(discountValue) <= 0))}
+                    className="w-full rounded-lg border border-yellow-400/20 bg-yellow-400/5 py-2.5 text-[10px] font-extrabold uppercase tracking-wider text-yellow-400 hover:bg-yellow-400/10 disabled:opacity-50"
+                  >
+                    {processing ? 'Saving...' : 'Save Discount'}
+                  </button>
                 </div>
               )}
 
@@ -667,6 +807,84 @@ export default function AdminBookingsPage() {
         </div>
 
       </div>
+
+      {showInvoice && selectedBooking?.invoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
+          <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white text-slate-800 shadow-2xl">
+            {(() => {
+              const amounts = getBookingInvoiceAmounts(selectedBooking);
+              return (
+                <div className="p-6 sm:p-10">
+                  <div className="flex flex-col gap-5 border-b-4 border-yellow-500 pb-6 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-black tracking-[0.25em] text-slate-900">FITBROS</p>
+                      <p className="mt-1 text-xs text-slate-500">Car Rental Invoice</p>
+                    </div>
+                    <div className="sm:text-right">
+                      <h3 className="text-2xl font-extrabold tracking-wide">INVOICE</h3>
+                      <p className="mt-1 font-mono text-sm">{selectedBooking.invoice.invoiceNumber}</p>
+                      <p className="text-xs text-slate-500">
+                        Issued {new Date(selectedBooking.invoice.issuedAt || selectedBooking.payment?.createdAt || selectedBooking.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6 py-6 sm:grid-cols-2">
+                    <div>
+                      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Bill to</p>
+                      <p className="font-bold">{selectedBooking.user?.name || 'Customer'}</p>
+                      <p className="text-sm text-slate-600">{selectedBooking.user?.email}</p>
+                      <p className="text-sm text-slate-600">{selectedBooking.user?.phone}</p>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Rental details</p>
+                      <p className="font-bold">{selectedBooking.car.name}</p>
+                      <p className="text-sm text-slate-600">{formatBookingDateTime(selectedBooking.fromDate)}</p>
+                      <p className="text-sm text-slate-600">to {formatBookingDateTime(selectedBooking.toDate)} · {amounts.days} day(s)</p>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[520px] text-left text-sm">
+                      <thead className="bg-slate-100 text-[10px] uppercase tracking-wider text-slate-500">
+                        <tr><th className="p-3">Description</th><th className="p-3">Days</th><th className="p-3">Daily rate</th><th className="p-3 text-right">Amount</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-slate-200">
+                          <td className="p-3 font-semibold">Vehicle rental — {selectedBooking.car.name}</td>
+                          <td className="p-3">{amounts.days}</td>
+                          <td className="p-3">₹{amounts.rate.toFixed(2)}</td>
+                          <td className="p-3 text-right font-semibold">₹{amounts.subtotal.toFixed(2)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="ml-auto mt-5 max-w-xs space-y-2 text-sm">
+                    <div className="flex justify-between"><span>Subtotal</span><span>₹{amounts.subtotal.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-green-700"><span>Discount</span><span>-₹{amounts.discount.toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span>Tax (5%)</span><span>₹{amounts.tax.toFixed(2)}</span></div>
+                    <div className="flex justify-between border-t-2 border-slate-800 pt-3 text-lg font-extrabold"><span>Total paid</span><span>₹{amounts.total.toFixed(2)}</span></div>
+                    <p className="pt-1 text-right text-xs text-slate-500">
+                      Paid via {selectedBooking.payment?.method || 'N/A'} · {selectedBooking.payment?.status || 'N/A'}
+                    </p>
+                  </div>
+
+                  <div className="mt-8 flex flex-col-reverse justify-between gap-3 border-t border-slate-200 pt-5 sm:flex-row">
+                    <p className="self-center text-xs text-slate-500">Thank you for choosing FitBros Car Rental.</p>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setShowInvoice(false)} className="rounded-lg border border-slate-300 px-4 py-2 text-xs font-bold">Close</button>
+                      <button type="button" onClick={handlePrintInvoice} className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-xs font-bold text-white">
+                        <Printer className="h-3.5 w-3.5" /> Print / Save PDF
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Document Preview Modal */}
       {previewUrl && (
