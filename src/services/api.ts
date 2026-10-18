@@ -119,6 +119,10 @@ export const bookingService = {
     const res = await api.post<{ message: string; booking: Booking }>(`/admin/bookings/${id}/confirm-cash`);
     return res.data;
   },
+  adminMarkPaymentReceived: async (id: string, method: PaymentMethod) => {
+    const res = await api.post<{ message: string; booking: Booking }>(`/admin/bookings/${id}/mark-paid`, { method });
+    return res.data;
+  },
   adminStartTrip: async (id: string) => {
     const res = await api.post<{ message: string; booking: Booking }>(`/admin/bookings/${id}/start-trip`);
     return res.data;

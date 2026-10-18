@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { isAxiosError } from 'axios';
 import { bookingService } from '../../../services/api';
-import { Booking } from '../../../types';
+import { Booking, PaymentMethod } from '../../../types';
 import { useAuth } from '../../../context/AuthContext';
 import { Calendar, Users, ClipboardCheck, Award, XSquare, Clock, MapPin, Eye, FileText, CheckCircle2, XCircle, X, Trash2 } from 'lucide-react';
 
@@ -22,6 +23,7 @@ export default function AdminBookingsPage() {
   const [endDate, setEndDate] = useState('');
   
   const [processing, setProcessing] = useState(false);
+  const [manualPaymentMethod, setManualPaymentMethod] = useState<PaymentMethod>('Cash');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState<string>('');
 
@@ -91,17 +93,19 @@ export default function AdminBookingsPage() {
     }
   };
 
-  const handleConfirmCash = async () => {
-    if (!selectedBooking) return;
+  const handleMarkPaymentReceived = async () => {
+    if (!selectedBooking || processing) return;
     setProcessing(true);
     try {
-      await bookingService.adminConfirmCash(selectedBooking.id);
-      alert('Cash payment confirmed.');
+      await bookingService.adminMarkPaymentReceived(selectedBooking.id, manualPaymentMethod);
       const refreshed = await bookingService.getDetails(selectedBooking.id);
       setSelectedBooking(refreshed);
-      fetchBookings();
-    } catch (err) {
-      alert('Failed to log cash receipt.');
+      await fetchBookings();
+    } catch (err: unknown) {
+      const message = isAxiosError<{ message?: string }>(err)
+        ? err.response?.data?.message
+        : undefined;
+      alert(message || 'Failed to record payment.');
     } finally {
       setProcessing(false);
     }
@@ -579,15 +583,34 @@ export default function AdminBookingsPage() {
                       </div>
                     )}
 
-                    {/* 2. Manual cash payment verification controls */}
-                    {selectedBooking.status === 'APPROVED_PENDING_PAYMENT' && selectedBooking.payment?.method === 'Cash' && selectedBooking.payment.status === 'PENDING' && (
-                      <button
-                        onClick={handleConfirmCash}
-                        disabled={processing}
-                        className="w-full py-3 bg-yellow-400 text-black font-extrabold text-[10px] uppercase tracking-widest rounded-lg hover:bg-yellow-300 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        Confirm Receipt - Payment Received
-                      </button>
+                    {/* 2. Record payment received outside the online checkout flow */}
+                    {selectedBooking.status === 'APPROVED_PENDING_PAYMENT' && selectedBooking.payment?.status !== 'COMPLETED' && (
+                      <div className="flex flex-col gap-2 rounded-lg border border-yellow-400/20 bg-yellow-400/5 p-3">
+                        <label htmlFor="manual-payment-method" className="text-[9px] uppercase tracking-widest text-gray-400 font-bold">
+                          Payment received via
+                        </label>
+                        <select
+                          id="manual-payment-method"
+                          value={manualPaymentMethod}
+                          onChange={(event) => setManualPaymentMethod(event.target.value as PaymentMethod)}
+                          disabled={processing}
+                          className="w-full rounded-lg border border-white/10 bg-[#171717] px-3 py-2 text-xs text-white focus:border-yellow-400 focus:outline-none"
+                        >
+                          <option value="Cash">Cash</option>
+                          <option value="UPI">UPI</option>
+                          <option value="Card">Card</option>
+                          <option value="NetBanking">Net Banking</option>
+                          <option value="Wallet">Wallet</option>
+                          <option value="Other">Other</option>
+                        </select>
+                        <button
+                          onClick={handleMarkPaymentReceived}
+                          disabled={processing}
+                          className="w-full py-3 bg-yellow-400 text-black font-extrabold text-[10px] uppercase tracking-widest rounded-lg hover:bg-yellow-300 transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          {processing ? 'Recording Payment...' : 'Mark as Paid & Confirm Booking'}
+                        </button>
+                      </div>
                     )}
 
                     {/* 3. Start trip logic */}
