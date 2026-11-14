@@ -371,6 +371,7 @@ export default function LandingPage({ initialCars }: LandingPageProps) {
                       alt={car.name}
                       fill
                       sizes="(max-width: 768px) 100vw, 50vw"
+                      unoptimized
                       loading={index < 2 ? 'eager' : 'lazy'}
                       fetchPriority={index < 2 ? 'high' : 'auto'}
                       decoding="async"
