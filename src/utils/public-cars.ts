@@ -27,7 +27,10 @@ const getCarsEndpoint = () => {
 };
 
 export const getPublicCars = cache(async (): Promise<Car[]> => {
-  const response = await fetch(getCarsEndpoint(), { cache: 'no-store' });
+  const response = await fetch(getCarsEndpoint(), {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(8000),
+  });
   if (!response.ok) {
     throw new Error(`Failed to load public car listings (HTTP ${response.status}).`);
   }

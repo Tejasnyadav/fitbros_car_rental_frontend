@@ -1,9 +1,17 @@
 import type { MetadataRoute } from 'next';
+import type { Car } from '../types';
 import { getPublicCars } from '../utils/public-cars';
 import { SITE_URL } from '../utils/seo';
 
+export const dynamic = 'force-dynamic';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const cars = await getPublicCars();
+  let cars: Car[] = [];
+  try {
+    cars = await getPublicCars();
+  } catch (error) {
+    console.error('Failed to load public car listings for the sitemap.', error);
+  }
 
   return [
     {
