@@ -1,12 +1,14 @@
-import type { MetadataRoute } from 'next'
+import type { MetadataRoute } from 'next';
+import { SITE_URL } from '../utils/seo';
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
       allow: '/',
+      disallow: '/api/',
     },
-    sitemap: 'https://fitbros.in/sitemap.xml',
-    host: 'https://fitbros.in',
-  }
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
+  };
 }

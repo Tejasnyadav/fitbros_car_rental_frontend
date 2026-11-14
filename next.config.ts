@@ -6,6 +6,15 @@ const apiPath = apiUrl.pathname.replace(/\/+$/, '').replace(/\/api$/, '');
 const apiDestination = `${apiUrl.origin}${apiPath}/api/:path*`;
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '/**'
+      }
+    ]
+  },
   async rewrites() {
     return [
       {

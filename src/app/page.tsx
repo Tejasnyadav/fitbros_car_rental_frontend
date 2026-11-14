@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { carService } from '../services/api';
 import { Car } from '../types';
@@ -176,17 +178,21 @@ export default function LandingPage() {
       {/* Hero Banner Section */}
       <div className="relative h-[280px] sm:h-[360px] md:h-[480px] w-full flex items-center justify-center overflow-hidden">
         {/* Dark background image */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-[#0A0A0A] opacity-35 filter brightness-75 scale-105 transition-transform duration-[10s]"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=80&w=1600')" }}
-        ></div>
+        <Image
+          src="https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=80&w=1600"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="absolute inset-0 scale-105 object-cover object-center opacity-35 brightness-75 transition-transform duration-[10s]"
+        />
         {/* Premium black gradient overlays */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-[#0A0A0A]/40"></div>
 
         <div className="relative z-10 text-center px-4 max-w-4xl">
           <span className="text-[9px] sm:text-[10px] tracking-[0.35em] text-yellow-400 font-extrabold uppercase font-luxury">EXPERIENCE EXCELLENCE</span>
           <h1 className="font-luxury font-extrabold text-3xl sm:text-4xl md:text-6xl text-white tracking-tight mt-1 leading-[1.15]">
-            The Drive Collection
+            FitBros Car Rental in Bangalore
           </h1>
           <p className="text-gray-400 text-[10px] sm:text-xs md:text-sm max-w-md md:max-w-lg mx-auto mt-2 md:mt-4 font-medium leading-relaxed">
             Premium vehicle rentals for every journey. Effortless booking, real-time availability, and exceptional service.
@@ -312,7 +318,7 @@ export default function LandingPage() {
       </div>
 
       {/* Catalog Grid Section */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-12 sm:mt-16">
+      <div id="fleet" className="max-w-6xl mx-auto px-4 sm:px-6 mt-12 sm:mt-16">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start md:items-center gap-3 mb-8">
           <div>
             <h2 className="font-luxury font-bold text-xl text-white tracking-wide">Available Fleet</h2>
@@ -387,7 +393,12 @@ export default function LandingPage() {
                     <div>
                       <div className="flex justify-between items-start">
                         <h3 className="font-luxury font-bold text-lg text-white group-hover:text-yellow-400 transition-colors">
-                          {car.name}
+                          <Link
+                            href={`/cars/${encodeURIComponent(car.id)}`}
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            {car.name}
+                          </Link>
                         </h3>
                         <div className="text-right">
                           <span className="font-luxury font-extrabold text-lg text-white">₹{car.pricePerDay}</span>
