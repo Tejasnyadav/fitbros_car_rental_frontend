@@ -11,6 +11,47 @@ import { Calendar, Users, ClipboardCheck, Award, XSquare, Clock, MapPin, Eye, Fi
 const formatBookingDateTime = (value: string) =>
   new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 
+const roundCurrency = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+const getBookingPricePreview = (
+  booking: Booking,
+  type: 'NONE' | 'FIXED' | 'PERCENTAGE',
+  value: number
+) => {
+  const duration = new Date(booking.toDate).getTime() - new Date(booking.fromDate).getTime();
+  if (!Number.isFinite(duration) || duration <= 0) {
+    return null;
+  }
+
+  const days = Math.max(1, Math.ceil(duration / (24 * 60 * 60 * 1000)));
+  const subtotal = roundCurrency(booking.car.pricePerDay * days);
+  if (!Number.isFinite(subtotal) || subtotal < 0 || !Number.isFinite(value) || value < 0) {
+    return null;
+  }
+
+  if ((type === 'PERCENTAGE' && value > 100) || (type === 'FIXED' && value > subtotal)) {
+    return null;
+  }
+
+  const rawDiscount = type === 'PERCENTAGE'
+    ? subtotal * value / 100
+    : type === 'FIXED'
+      ? value
+      : 0;
+  const discount = roundCurrency(Math.min(subtotal, rawDiscount));
+  const discountedSubtotal = roundCurrency(subtotal - discount);
+  const originalTax = roundCurrency(subtotal * 0.05);
+  const discountedTax = roundCurrency(discountedSubtotal * 0.05);
+
+  return {
+    subtotal,
+    discount,
+    discountedSubtotal,
+    originalTotal: roundCurrency(subtotal + originalTax),
+    discountedTotal: roundCurrency(discountedSubtotal + discountedTax),
+  };
+};
+
 export default function AdminBookingsPage() {
   const { admin, loading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -684,6 +725,49 @@ export default function AdminBookingsPage() {
 
               {selectedBooking.status === 'PENDING_ADMIN_APPROVAL' && !selectedBooking.payment && (
                 <div className="flex flex-col gap-3 border-t border-white/5 pt-4">
+                  {(() => {
+                    const preview = getBookingPricePreview(
+                      selectedBooking,
+                      discountType,
+                      Number(discountValue)
+                    );
+
+                    return (
+                      <div className="rounded-lg border border-white/10 bg-[#0A0A0A] p-3" aria-live="polite">
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-gray-500">
+                          Price comparison
+                        </p>
+                        {preview ? (
+                          <div className="mt-2 flex flex-col gap-2 text-[11px]">
+                            <div className="flex justify-between text-gray-400">
+                              <span>Original rental price</span>
+                              <span>₹{preview.subtotal.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-green-400">
+                              <span>Discount</span>
+                              <span>-₹{preview.discount.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between border-t border-white/10 pt-2 font-bold text-white">
+                              <span>Rental price after discount</span>
+                              <span>₹{preview.discountedSubtotal.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-500">
+                              <span>Total before discount (incl. 5% tax)</span>
+                              <span>₹{preview.originalTotal.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between font-extrabold text-yellow-400">
+                              <span>Total after discount (incl. 5% tax)</span>
+                              <span>₹{preview.discountedTotal.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="mt-2 text-[10px] text-red-400">
+                            Enter a valid discount no greater than the rental price to preview the updated total.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                   <div>
                     <span className="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Customer Discount</span>
                     <p className="mt-1 text-[10px] text-gray-500">Set a discount before approving the booking. Tax is calculated after discount.</p>
