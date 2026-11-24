@@ -72,6 +72,8 @@ export default function AdminBookingsPage() {
   const [previewTitle, setPreviewTitle] = useState<string>('');
   const [discountType, setDiscountType] = useState<'NONE' | 'FIXED' | 'PERCENTAGE'>('NONE');
   const [discountValue, setDiscountValue] = useState('0');
+  const [extensionDays, setExtensionDays] = useState('1');
+  const [extensionPaymentMethod, setExtensionPaymentMethod] = useState<PaymentMethod>('Cash');
   const [invoiceMonth, setInvoiceMonth] = useState(() => {
     const date = new Date();
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -250,6 +252,55 @@ export default function AdminBookingsPage() {
       fetchBookings();
     } catch (err) {
       alert('Failed to log trip completion.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleExtendTrip = async () => {
+    if (!selectedBooking || processing) return;
+    const days = Number(extensionDays);
+    if (!Number.isInteger(days) || days < 1 || days > 365) {
+      alert('Enter a whole number of extension days between 1 and 365.');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const result = await bookingService.adminExtendTrip(selectedBooking.id, days);
+      setSelectedBooking((current) => current
+        ? { ...current, ...result.booking }
+        : result.booking);
+      setBookings((current) => current.map((booking) =>
+        booking.id === result.booking.id
+          ? { ...booking, toDate: result.booking.toDate }
+          : booking
+      ));
+      setExtensionDays('1');
+      alert(result.message);
+    } catch (err: unknown) {
+      const message = isAxiosError<{ message?: string }>(err) ? err.response?.data?.message : undefined;
+      alert(message || 'Failed to extend the trip.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleMarkExtensionPaid = async (extensionId: string) => {
+    if (!selectedBooking || processing) return;
+    setProcessing(true);
+    try {
+      await bookingService.adminMarkTripExtensionPaid(
+        selectedBooking.id,
+        extensionId,
+        extensionPaymentMethod
+      );
+      const refreshed = await bookingService.getDetails(selectedBooking.id);
+      setSelectedBooking(refreshed);
+      alert('Extension charge marked as collected.');
+    } catch (err: unknown) {
+      const message = isAxiosError<{ message?: string }>(err) ? err.response?.data?.message : undefined;
+      alert(message || 'Failed to update extension payment status.');
     } finally {
       setProcessing(false);
     }
@@ -814,6 +865,53 @@ export default function AdminBookingsPage() {
                 </div>
               )}
 
+              {(selectedBooking.extensions || []).length > 0 && (
+                <div className="flex flex-col gap-2 border-t border-white/5 pt-4">
+                  <span className="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Trip extension charges</span>
+                  {selectedBooking.extensions!.map((extension) => (
+                    <div key={extension.id} className="rounded-lg border border-white/5 bg-[#0A0A0A] p-3 text-[10px]">
+                      <div className="flex justify-between gap-2 text-gray-300">
+                        <span>{extension.additionalDays} day(s) · through {formatBookingDateTime(extension.extendedToDate)}</span>
+                        <span className="font-bold text-white">₹{extension.totalAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <span className={extension.paymentStatus === 'PAID' ? 'text-green-400' : 'text-yellow-400'}>
+                          {extension.paymentStatus === 'PAID'
+                            ? `Collected${extension.paymentMethod ? ` · ${extension.paymentMethod}` : ''}`
+                            : 'Amount due'}
+                        </span>
+                        {extension.paymentStatus === 'DUE' && selectedBooking.status !== 'REJECTED' && (
+                          <div className="flex items-center gap-2">
+                            <select
+                              aria-label="Extension payment method"
+                              value={extensionPaymentMethod}
+                              onChange={(event) => setExtensionPaymentMethod(event.target.value as PaymentMethod)}
+                              disabled={processing}
+                              className="rounded border border-white/10 bg-[#171717] px-2 py-1 text-[10px] text-white"
+                            >
+                              <option value="Cash">Cash</option>
+                              <option value="UPI">UPI</option>
+                              <option value="Card">Card</option>
+                              <option value="NetBanking">Net Banking</option>
+                              <option value="Wallet">Wallet</option>
+                              <option value="Other">Other</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => handleMarkExtensionPaid(extension.id)}
+                              disabled={processing}
+                              className="rounded bg-green-500/10 px-2 py-1 font-bold text-green-400 hover:bg-green-500/20 disabled:opacity-50"
+                            >
+                              Mark collected
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Admin actionable panel state updates */}
               <div className="flex flex-col gap-3 border-t border-white/5 pt-4 mt-2">
                 {isReadOnly ? (
@@ -881,6 +979,48 @@ export default function AdminBookingsPage() {
                       >
                         Handover Keys - Start Trip (Active)
                       </button>
+                    )}
+
+                    {selectedBooking.status === 'ACTIVE' && (
+                      <div className="flex flex-col gap-3 border-t border-white/5 pt-4">
+                        <div>
+                          <span className="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Extend Active Trip</span>
+                          <p className="mt-1 text-[10px] text-gray-500">
+                            Current return: {formatBookingDateTime(selectedBooking.toDate)}. Added days are charged at the daily rate plus 5% tax. Existing booking payment is not changed.
+                          </p>
+                        </div>
+                        <label htmlFor="trip-extension-days" className="text-[10px] font-semibold text-gray-400">
+                          Additional days
+                        </label>
+                        <input
+                          id="trip-extension-days"
+                          type="number"
+                          min={1}
+                          max={365}
+                          step={1}
+                          value={extensionDays}
+                          onChange={(event) => setExtensionDays(event.target.value)}
+                          disabled={processing}
+                          className="w-full rounded-lg border border-white/10 bg-[#171717] px-3 py-2 text-xs text-white"
+                        />
+                        {Number.isInteger(Number(extensionDays)) && Number(extensionDays) > 0 && Number(extensionDays) <= 365 && (
+                          <p className="text-[10px] text-yellow-400">
+                            Additional amount due: ₹{(
+                              selectedBooking.car.pricePerDay
+                              * Number(extensionDays)
+                              * 1.05
+                            ).toFixed(2)} including tax
+                          </p>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleExtendTrip}
+                          disabled={processing || !Number.isInteger(Number(extensionDays)) || Number(extensionDays) < 1 || Number(extensionDays) > 365}
+                          className="w-full rounded-lg border border-yellow-400/20 bg-yellow-400/5 py-2.5 text-[10px] font-extrabold uppercase tracking-wider text-yellow-400 hover:bg-yellow-400/10 disabled:opacity-50"
+                        >
+                          {processing ? 'Extending...' : 'Extend Trip & Record Amount Due'}
+                        </button>
+                      </div>
                     )}
 
                     {/* 4. Complete trip logic */}

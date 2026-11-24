@@ -56,8 +56,25 @@ export interface Booking {
   agreement?: Agreement;
   payment?: Payment;
   invoice?: Invoice;
+  extensions?: BookingExtension[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface BookingExtension {
+  id: string;
+  bookingId: string;
+  previousToDate: string;
+  extendedToDate: string;
+  additionalDays: number;
+  dailyRate: number;
+  subtotal: number;
+  taxAmount: number;
+  totalAmount: number;
+  paymentStatus: 'DUE' | 'PAID';
+  paymentMethod?: PaymentMethod | null;
+  paidAt?: string | null;
+  createdAt: string;
 }
 
 export interface Document {

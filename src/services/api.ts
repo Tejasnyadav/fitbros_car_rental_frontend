@@ -139,6 +139,21 @@ export const bookingService = {
     const res = await api.post<{ message: string; booking: Booking }>(`/admin/bookings/${id}/start-trip`);
     return res.data;
   },
+  adminExtendTrip: async (id: string, additionalDays: number) => {
+    const res = await api.post<{
+      message: string;
+      booking: Booking;
+      extension: NonNullable<Booking['extensions']>[number];
+    }>(`/admin/bookings/${id}/extend-trip`, { additionalDays });
+    return res.data;
+  },
+  adminMarkTripExtensionPaid: async (id: string, extensionId: string, method: PaymentMethod) => {
+    const res = await api.post<{ message: string }>(
+      `/admin/bookings/${id}/extensions/${extensionId}/mark-paid`,
+      { method }
+    );
+    return res.data;
+  },
   adminEndTrip: async (id: string) => {
     const res = await api.post<{ message: string; booking: Booking }>(`/admin/bookings/${id}/end-trip`);
     return res.data;
